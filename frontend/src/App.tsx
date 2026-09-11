@@ -11,14 +11,17 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { MarketplacePage } from './pages/MarketplacePage';
 import { MaterialDetailsPage } from './pages/MaterialDetailsPage';
-import { CreateListingPage } from './pages/CreateListingPage';
-import { MyListingsPage } from './pages/MyListingsPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailsPage } from './pages/OrderDetailsPage';
 import { LogisticsPage } from './pages/LogisticsPage';
 import { ImpactDashboardPage } from './pages/ImpactDashboardPage';
 import { OrganizationPage } from './pages/OrganizationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { F2CreateListingPage } from './pages/F2CreateListingPage';
+import { F2MyListingsPage } from './pages/F2MyListingsPage';
+import { RequirementsPage } from './pages/RequirementsPage';
+import { CreateRequirementPage } from './pages/CreateRequirementPage';
+import { RequirementDetailsPage } from './pages/RequirementDetailsPage';
 
 export const App: React.FC = () => {
   return (
@@ -46,7 +49,7 @@ export const App: React.FC = () => {
               path="/create-listing"
               element={
                 <RequireAuth>
-                  <CreateListingPage />
+                  <F2CreateListingPage />
                 </RequireAuth>
               }
             />
@@ -54,7 +57,31 @@ export const App: React.FC = () => {
               path="/my-listings"
               element={
                 <RequireAuth>
-                  <MyListingsPage />
+                  <F2MyListingsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/requirements"
+              element={
+                <RequireAuth>
+                  <RequirementsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/requirements/new"
+              element={
+                <RequireAuth>
+                  <CreateRequirementPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/requirements/:id"
+              element={
+                <RequireAuth>
+                  <RequirementDetailsPage />
                 </RequireAuth>
               }
             />

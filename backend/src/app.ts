@@ -19,6 +19,7 @@ import { facilitiesRoutes } from './modules/facilities/facilities.routes.js';
 import { materialsRoutes } from './modules/materials/materials.routes.js';
 import { categoriesRoutes } from './modules/categories/categories.routes.js';
 import { requirementsRoutes } from './modules/requirements/requirements.routes.js';
+import { listingRoutes } from './modules/listings/listing.routes.js';
 
 // Tier 3: INTELLIGENCE
 import { matchingRoutes } from './modules/matching/matching.routes.js';
@@ -43,6 +44,9 @@ import { trustRoutes } from './modules/trust/trust.routes.js';
 // Tier 8: EXPERIENCE
 import { notificationsRoutes } from './modules/notifications/notifications.routes.js';
 import { experienceRoutes } from './modules/experience/experience.routes.js';
+import { carbonRoutes } from './modules/carbon/carbon.routes.js';
+import { transactionRoutes } from './modules/transaction/transaction.routes.js';
+import { routeRoutes } from './modules/route/route.routes.js';
 
 export const createApp = (): Express => {
   const app = express();
@@ -103,6 +107,7 @@ export const createApp = (): Express => {
   app.use('/api/v1/materials', materialsRoutes);
   app.use('/api/v1/categories', categoriesRoutes);
   app.use('/api/v1/requirements', requirementsRoutes);
+  app.use('/api/v1/listings', listingRoutes);
 
   // 3. INTELLIGENCE
   app.use('/api/v1/matching', matchingRoutes);
@@ -127,6 +132,9 @@ export const createApp = (): Express => {
   // 8. EXPERIENCE
   app.use('/api/v1/notifications', notificationsRoutes);
   app.use('/api/v1/experience', experienceRoutes);
+app.use('/api/v1/carbon', carbonRoutes);
+app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/routes', routeRoutes);
 
   // Centralized Error Handling
   app.use(errorHandler);

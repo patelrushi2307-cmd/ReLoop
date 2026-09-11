@@ -1,28 +1,17 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { RequirementModel } from './requirements.model.js';
+import { Router } from 'express';
 import { requireAuth } from '../../middleware/requireAuth.js';
+import { validate } from '../../middleware/validate.js';
+import { createRequirementSchema, requirementQuerySchema, updateRequirementSchema } from './requirement.schema.js';
+import { requirementController } from './requirement.controller.js';
 
 const router = Router();
 
-router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const list = await RequirementModel.find({ status: 'active' }).populate('organizationId', 'name address');
-    res.json({ success: true, data: list });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const requirement = await RequirementModel.create({
-      ...req.body,
-      organizationId: req.user?.organizationId,
-    });
-    res.status(201).json({ success: true, data: requirement });
-  } catch (error) {
-    next(error);
-  }
-});
+router.post('/', requireAuth, validate(createRequirementSchema), requirementController.create);
+router.get('/', requireAuth, validate(requirementQuerySchema), requirementController.list);
+router.get('/:id', requireAuth, requirementController.getById);
+router.patch('/:id', requireAuth, validate(updateRequirementSchema), requirementController.update);
+router.post('/:id/pause', requireAuth, requirementController.pause);
+router.post('/:id/resume', requireAuth, requirementController.resume);
+router.post('/:id/close', requireAuth, requirementController.close);
 
 export const requirementsRoutes = router;

@@ -23,6 +23,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Runtime listing media
+backend/uploads/
+
 # Editor & OS
 .vscode/
 .idea/

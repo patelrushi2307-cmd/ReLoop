@@ -1,43 +1,16 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { impactService } from '../../services/impact.service.js';
-import { OrderModel } from '../orders/orders.model.js';
+import { Router } from 'express';
+import { impactController } from './impact.controller.js';
+import { requireAuth } from '../../middleware/requireAuth.js';
 
 const router = Router();
 
-router.get('/organization/:orgId', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const orgId = req.params.orgId;
-    const completedOrders = await OrderModel.find({
-      $or: [{ buyerOrganizationId: orgId }, { sellerOrganizationId: orgId }],
-      status: 'completed',
-      isDeleted: false,
-    });
+// Create a new ledger entry (authenticated)
+router.post('/entries', requireAuth, impactController.createEntry);
 
-    let totalDivertedKg = 0;
-    let totalCo2SavedKg = 0;
+// Retrieve a ledger entry by id (authenticated)
+router.get('/entries/:id', requireAuth, impactController.getEntry);
 
-    for (const order of completedOrders) {
-      const metrics = impactService.calculateImpact({
-        materialType: 'cardboard', // Baseline placeholder
-        quantity: order.quantity,
-        unit: order.unit,
-      });
-      totalDivertedKg += metrics.wasteDivertedKg;
-      totalCo2SavedKg += metrics.co2SavedKg;
-    }
-
-    res.json({
-      success: true,
-      data: {
-        organizationId: orgId,
-        completedTransactions: completedOrders.length,
-        wasteDivertedKg: Math.round(totalDivertedKg * 10) / 10,
-        co2SavedKg: Math.round(totalCo2SavedKg * 10) / 10,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+// Verify the integrity of the entire ledger chain (authenticated)
+router.get('/verify', requireAuth, impactController.verifyChain);
 
 export const impactRoutes = router;

@@ -33,7 +33,9 @@ export class AuthService {
 
     const org = await OrganizationModel.create({
       name: input.organizationName,
+      legalName: input.organizationName,
       type: input.organizationType,
+      roles: input.organizationType === 'recycler' ? ['recycler'] : input.organizationType === 'logistics' ? ['carrier'] : ['seller'],
       contactEmail: input.email,
       address: {
         city: input.city,

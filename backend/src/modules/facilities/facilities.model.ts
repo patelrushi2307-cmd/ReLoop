@@ -4,7 +4,8 @@ export interface IFacility extends Document {
   organizationId: mongoose.Types.ObjectId;
   name: string;
   facilityType: 'manufacturing_plant' | 'warehouse' | 'retail_depot' | 'recycling_yard' | 'transfer_station';
-  operatingHours?: string;
+  operatingHours?: Record<string, { closed: boolean; opens?: string; closes?: string }>;
+  hasForklift: boolean;
   dockCount?: number;
   contactPerson?: {
     name: string;
@@ -37,7 +38,8 @@ const FacilitySchema = new Schema<IFacility>(
       required: true,
       index: true,
     },
-    operatingHours: { type: String },
+    operatingHours: { type: Schema.Types.Mixed },
+    hasForklift: { type: Boolean, default: false },
     dockCount: { type: Number, default: 1 },
     contactPerson: {
       name: { type: String },
@@ -61,5 +63,6 @@ const FacilitySchema = new Schema<IFacility>(
 );
 
 FacilitySchema.index({ location: '2dsphere' });
+FacilitySchema.index({ organizationId: 1, createdAt: -1 });
 
 export const FacilityModel = mongoose.model<IFacility>('Facility', FacilitySchema);

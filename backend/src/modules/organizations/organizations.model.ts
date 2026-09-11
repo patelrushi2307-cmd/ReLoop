@@ -1,10 +1,15 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export type OrganizationType = 'manufacturer' | 'retailer' | 'recycler' | 'logistics';
+export type OrganizationRole = 'seller' | 'buyer' | 'recycler' | 'carrier';
+export type VerificationStatus = 'unverified' | 'document-submitted' | 'verified';
 
 export interface IOrganization extends Document {
   name: string;
+  legalName: string;
+  businessId?: string;
   type: OrganizationType;
+  roles: OrganizationRole[];
   registrationNumber?: string;
   contactEmail: string;
   phone?: string;
@@ -20,6 +25,7 @@ export interface IOrganization extends Document {
     coordinates: [number, number]; // [longitude, latitude]
   };
   verified: boolean;
+  verificationStatus: VerificationStatus;
   isDeleted: boolean;
   deletedAt?: Date;
   createdAt: Date;
@@ -29,6 +35,8 @@ export interface IOrganization extends Document {
 const OrganizationSchema = new Schema<IOrganization>(
   {
     name: { type: String, required: true, trim: true },
+    legalName: { type: String, required: true, trim: true },
+    businessId: { type: String, trim: true, uppercase: true },
     type: {
       type: String,
       enum: ['manufacturer', 'retailer', 'recycler', 'logistics'],
@@ -57,6 +65,16 @@ const OrganizationSchema = new Schema<IOrganization>(
       },
     },
     verified: { type: Boolean, default: false },
+    roles: {
+      type: [{ type: String, enum: ['seller', 'buyer', 'recycler', 'carrier'] }],
+      default: [],
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['unverified', 'document-submitted', 'verified'],
+      default: 'unverified',
+      index: true,
+    },
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date },
   },
@@ -64,5 +82,6 @@ const OrganizationSchema = new Schema<IOrganization>(
 );
 
 OrganizationSchema.index({ location: '2dsphere' });
+OrganizationSchema.index({ businessId: 1 }, { unique: true, sparse: true });
 
 export const OrganizationModel = mongoose.model<IOrganization>('Organization', OrganizationSchema);

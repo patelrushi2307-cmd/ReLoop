@@ -7,6 +7,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(5000),
   MONGODB_URI: z.string().default('mongodb://localhost:27017/circular_packaging_exchange'),
+  MONGODB_DB_NAME: z.string().optional(),
   JWT_ACCESS_SECRET: z.string().min(16).default('development_insecure_access_secret_only_for_dev_32char'),
   JWT_REFRESH_SECRET: z.string().min(16).default('development_insecure_refresh_secret_only_for_dev_32char'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),

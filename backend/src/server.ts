@@ -1,7 +1,7 @@
 import http from 'http';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
-import { connectDB } from './config/db.js';
+import { connectDB, disconnectDB } from './config/db.js';
 import { logger } from './config/logger.js';
 import { initSockets } from './sockets/index.js';
 
@@ -26,7 +26,7 @@ const startServer = async () => {
     logger.info('Shutting down server gracefully...');
     server.close(() => {
       logger.info('HTTP server closed.');
-      process.exit(0);
+      void disconnectDB().finally(() => process.exit(0));
     });
   };
 

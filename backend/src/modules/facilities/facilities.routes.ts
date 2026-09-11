@@ -1,6 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { FacilityModel } from './facilities.model.js';
 import { requireAuth } from '../../middleware/requireAuth.js';
+import { validate } from '../../middleware/validate.js';
+import { facilitySchema } from '../organizations/organizations.schema.js';
 
 const router = Router();
 
@@ -16,7 +18,7 @@ router.get('/', requireAuth, async (req: Request, res: Response, next: NextFunct
   }
 });
 
-router.post('/', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
+router.post('/', requireAuth, validate(facilitySchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const facility = await FacilityModel.create({
       ...req.body,
