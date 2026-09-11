@@ -1,6 +1,6 @@
-# Circular Packaging & Materials Exchange
+# ReLoop — Carbon-Aware B2B Circular Packaging & Materials Exchange
 
-A B2B circular materials marketplace connecting manufacturers, retailers, packaging recyclers, and logistics operators to keep packaging materials (Cardboard, Plastic, Pallets) in high-value industrial circulation.
+ReLoop is a B2B circular materials marketplace connecting manufacturers, retailers, packaging recyclers, and logistics operators to keep packaging materials (Cardboard, Plastic, Pallets) in high-value industrial circulation.
 
 ---
 

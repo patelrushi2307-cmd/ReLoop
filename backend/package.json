@@ -1,5 +1,5 @@
 {
-  "name": "circular-packaging-backend",
+  "name": "reloop-backend",
   "version": "0.1.0",
   "private": true,
   "description": "Modular Monolith backend for Circular Packaging & Materials Exchange",
