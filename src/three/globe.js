@@ -1,0 +1,1034 @@
+import * as THREE from "three";
+import { CLICK_HIGHLIGHT } from "../config/constants.js";
+import {
+  BORDERLESS_ROUTE_PATHS,
+  DEFAULT_GLOBE_SETTINGS,
+  GLOBE_DEFAULT_GLOW,
+  GLOBE_RADIUS,
+} from "../config/globe-settings.js";
+import { clampNumber, hashString, normalizeLongitude, remapTByMidpoint, smoothStep } from "../utils/math.js";
+import { pointToGlobeCoordinate } from "../utils/projection.js";
+import { latLngToVector3, pointToFlatVector3 } from "./coordinates.js";
+import { createAsciiCanvasTexture, createGlobeDotGeometry, disposeThreeObject } from "./geometry.js";
+
+const getGridSettingsSignature = (settings = DEFAULT_GLOBE_SETTINGS) => {
+  const gridSize = clampNumber(settings.gridSize ?? DEFAULT_GLOBE_SETTINGS.gridSize, 0, 60);
+  const gridLift = clampNumber(settings.gridLift ?? DEFAULT_GLOBE_SETTINGS.gridLift, 0, 100);
+  const gridColor = settings.gridColor ?? DEFAULT_GLOBE_SETTINGS.gridColor;
+  // Stringify the gradient for cheap equality. null is its own state
+  // (solid color) — any change to from/to forces rebuild.
+  const grad = settings.gridGradient
+    ? `${settings.gridGradient.from ?? ""}|${settings.gridGradient.to ?? ""}`
+    : "";
+  return `${gridSize}:${gridLift}:${gridColor}:${grad}`;
+};
+
+export const createGraticule = (settings = DEFAULT_GLOBE_SETTINGS) => {
+  const gridSize = clampNumber(settings.gridSize ?? DEFAULT_GLOBE_SETTINGS.gridSize, 0, 60);
+  const gridLift = clampNumber(settings.gridLift ?? DEFAULT_GLOBE_SETTINGS.gridLift, 0, 100);
+  const gridColor = settings.gridColor ?? DEFAULT_GLOBE_SETTINGS.gridColor ?? "#ffffff";
+  const gridGradient = settings.gridGradient ?? null;
+  const useGradient = !!(gridGradient && gridGradient.from && gridGradient.to);
+  const radius = GLOBE_RADIUS + 0.004 + gridLift * 0.0024;
+  const sampleStep = Math.max(2, Math.min(6, gridSize / 6));
+  const group = new THREE.Group();
+  group.userData.gridSignature = getGridSettingsSignature(settings);
+  // gridSize 0 = "Off" — return an empty group. Otherwise the
+  // halfCount / meridianCount formulas would divide by zero and
+  // explode into infinite loops. The shared material only gets
+  // created when there are lines to put on it.
+  if (gridSize <= 0) return group;
+  // When a gradient is in play, vertexColors mode lets each line
+  // sample its own color from the gradient based on each point's
+  // latitude. The material's flat color is white so per-vertex
+  // colors aren't multiplied by anything but 1.0. With solid color
+  // mode the material owns the tint directly.
+  // NormalBlending so the picked color renders WYSIWYG. Earlier
+  // versions used AdditiveBlending which made the rendered color
+  // depend on whatever was behind — at low Grid lift the line
+  // sat directly over the sphere fill and the result looked like
+  // "color + dark sphere" instead of the picked color. Normal
+  // blending = ink-on-surface; what you pick is what you see.
+  const material = new THREE.LineBasicMaterial({
+    color: useGradient ? 0xffffff : new THREE.Color(gridColor),
+    transparent: true,
+    opacity: 0.13,
+    blending: THREE.NormalBlending,
+    depthWrite: false,
+    vertexColors: useGradient,
+  });
+  const gradFrom = useGradient ? new THREE.Color(gridGradient.from) : null;
+  const gradTo = useGradient ? new THREE.Color(gridGradient.to) : null;
+  // Linear lerp by normalized latitude. The radius of the sphere
+  // is the GLOBE_RADIUS plus the lift offset, so y/radius gives a
+  // value in [-1, 1] for points on the geodesic surface.
+  const sampleGradient = (latitudeNorm) => {
+    const tmp = gradFrom.clone();
+    return tmp.lerp(gradTo, Math.max(0, Math.min(1, latitudeNorm)));
+  };
+  // Helper that builds a Line geometry from points and optionally
+  // attaches per-vertex colors driven by the gradient.
+  const buildLine = (points) => {
+    const geom = new THREE.BufferGeometry().setFromPoints(points);
+    if (useGradient) {
+      const colors = new Float32Array(points.length * 3);
+      points.forEach((p, i) => {
+        // y/radius is in roughly [-1, 1]; remap to [0, 1] so the
+        // gradient sweeps from south (0) to north (1).
+        const t = (p.y / radius + 1) * 0.5;
+        const c = sampleGradient(t);
+        colors[i * 3] = c.r;
+        colors[i * 3 + 1] = c.g;
+        colors[i * 3 + 2] = c.b;
+      });
+      geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    }
+    return new THREE.Line(geom, material);
+  };
+
+  // Parallels (lines of constant latitude). Walk OUTWARD from the
+  // equator using the slider value as exact spacing, then up to the
+  // last fully-inside multiple before the poles. This guarantees:
+  //   - The equator (lat=0) is ALWAYS drawn — defines the globe's
+  //     primary reference circle.
+  //   - Spacing is exactly the slider value, no rounding mismatch.
+  //   - Symmetric N/S so the visual reads as a proper graticule.
+  // Old code did `for (lat = -90+gridSize; lat<90; lat+=gridSize)`
+  // which silently dropped the equator at gridSize=60, 45, 33, ... —
+  // any value where -90+gridSize wasn't a multiple of gridSize that
+  // also reached 0.
+  const halfCount = Math.max(0, Math.floor((90 - 0.5) / gridSize));
+  for (let k = -halfCount; k <= halfCount; k++) {
+    const lat = k * gridSize;
+    const points = [];
+    for (let lng = -180; lng <= 180; lng += sampleStep) {
+      points.push(latLngToVector3(lat, lng, radius));
+    }
+    group.add(buildLine(points));
+  }
+
+  // Meridians (lines of constant longitude). Must evenly divide 360
+  // to wrap cleanly around the globe — otherwise there's a visible
+  // "seam" at the antimeridian where the last gap doesn't match the
+  // rest. Round to the nearest count and derive the actual step from
+  // it. Tiny divergence from the slider's literal value (e.g. slider
+  // 33° → actual 32.7° at count=11) is invisible.
+  // Old code stepped by `gridSize` directly which produced a lopsided
+  // grid at any non-divisor of 360.
+  const meridianCount = Math.max(2, Math.round(360 / gridSize));
+  const meridianStep = 360 / meridianCount;
+  for (let i = 0; i < meridianCount; i++) {
+    const lng = -180 + i * meridianStep;
+    const points = [];
+    for (let lat = -82; lat <= 82; lat += sampleStep) {
+      points.push(latLngToVector3(lat, lng, radius));
+    }
+    group.add(buildLine(points));
+  }
+
+  return group;
+};
+
+export const syncGraticule = (refs, settings) => {
+  if (!refs?.globeGroup) return;
+  const signature = getGridSettingsSignature(settings);
+  if (refs.graticule?.userData?.gridSignature === signature) return;
+
+  const nextGraticule = createGraticule(settings);
+  // Seed the freshly-created material's opacity with the user's CURRENT
+  // slider value. The material constructor sets opacity to its hardcoded
+  // 0.13 baseline; without this, every rebuild (one per slider tick
+  // during continuous drag) would render one frame at 0.13 before
+  // applyGlobeShellProgress on the next frame corrects it — visible as
+  // a flash, especially noticeable when dragging gridSize through its
+  // range. All lines share a single material so writing once is enough.
+  const sharedMaterial = nextGraticule.children[0]?.material;
+  if (sharedMaterial) {
+    const gridStrength = settings.grid === false
+      ? 0
+      : clampNumber(settings.gridStrength ?? DEFAULT_GLOBE_SETTINGS.gridStrength, 0, 100) / 100;
+    sharedMaterial.opacity = gridStrength;
+  }
+  if (refs.graticule) {
+    refs.globeGroup.remove(refs.graticule);
+    disposeThreeObject(refs.graticule);
+  }
+  refs.graticule = nextGraticule;
+  refs.globeGroup.add(nextGraticule);
+};
+
+const createBorderlessRoutePoints = ([fromLat, fromLng], [toLat, toLng], lift = 0.42, segments = 96) => {
+  const start = latLngToVector3(fromLat, fromLng, GLOBE_RADIUS + 0.055);
+  const end = latLngToVector3(toLat, toLng, GLOBE_RADIUS + 0.055);
+  const mid = start.clone().add(end).normalize().multiplyScalar(GLOBE_RADIUS + lift);
+  return new THREE.QuadraticBezierCurve3(start, mid, end).getPoints(segments);
+};
+
+export const createBorderlessNetwork = () => {
+  const group = new THREE.Group();
+  group.visible = false;
+
+  BORDERLESS_ROUTE_PATHS.forEach((route, index) => {
+    const points = createBorderlessRoutePoints(route.from, route.to, route.lift);
+    const color = new THREE.Color(route.color);
+    const lineMaterial = new THREE.LineBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterial);
+    line.userData.baseOpacity = route.opacity;
+    group.add(line);
+
+    const pulseMaterial = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const pulse = new THREE.Mesh(new THREE.SphereGeometry(0.03, 18, 12), pulseMaterial);
+    pulse.userData.baseOpacity = 0.92;
+    pulse.userData.offset = index / BORDERLESS_ROUTE_PATHS.length;
+    pulse.userData.routePoints = points;
+    group.add(pulse);
+  });
+
+  [
+    { rotation: [0.25, 0.5, -0.12], color: "#6be7ff", opacity: 0.2 },
+    { rotation: [0.92, -0.32, 0.34], color: "#b793ff", opacity: 0.18 },
+    { rotation: [-0.38, 0.85, 0.72], color: "#ffffff", opacity: 0.12 },
+  ].forEach((ring) => {
+    const geometry = new THREE.TorusGeometry(GLOBE_RADIUS + 0.075, 0.0038, 8, 180);
+    const material = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(ring.color),
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.set(...ring.rotation);
+    mesh.userData.baseOpacity = ring.opacity;
+    group.add(mesh);
+  });
+
+  return group;
+};
+
+export const updateBorderlessNetworkMotion = (group, now) => {
+  if (!group?.visible) return;
+  const opacity = group.userData.opacity ?? 0;
+  group.rotation.z = Math.sin(now * 0.00018) * 0.018;
+  group.children.forEach((child) => {
+    const points = child.userData.routePoints;
+    if (!points?.length || !child.material) return;
+
+    const travel = (now * 0.00016 + child.userData.offset) % 1;
+    const pointIndex = Math.min(points.length - 1, Math.floor(travel * (points.length - 1)));
+    const shimmer = 0.56 + Math.sin(travel * Math.PI * 2) * 0.28;
+    child.position.copy(points[pointIndex]);
+    child.material.opacity = (child.userData.baseOpacity ?? 0.8) * opacity * shimmer;
+  });
+};
+
+export const createOuterHaloMaterial = () =>
+  new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vObjectPos;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vObjectPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 haloColor;
+      uniform float intensity;
+      uniform float uTime;
+      uniform float rimPower;
+      varying vec3 vNormal;
+      varying vec3 vObjectPos;
+      void main() {
+        // Rim power drives the falloff curve — high values (≈4.6, the
+        // default) concentrate the halo near the silhouette; low values
+        // (≈1.2 at max Blur) bleed it far outward as a soft cloud.
+        float rim = pow(max(0.0, 0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0))), rimPower);
+        // Slow breathing — the deep halo expands/contracts gently.
+        float breath = 0.88 + 0.12 * sin(uTime * 0.22);
+        gl_FragColor = vec4(haloColor, clamp(rim * intensity * breath, 0.0, 0.10));
+      }
+    `,
+    uniforms: {
+      haloColor: { value: new THREE.Color("#4c8bff") },
+      intensity: { value: 0.4 },
+      uTime: { value: 0 },
+      rimPower: { value: 4.6 },
+    },
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+  });
+
+export const createAtmosphereMaterial = () =>
+  new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vObjectPos;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vObjectPos = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 glowColor;
+      uniform vec3 limbColor;
+      uniform float intensity;
+      uniform float uTime;
+      uniform float rimPower;
+      varying vec3 vNormal;
+      varying vec3 vObjectPos;
+
+      void main() {
+        // Rim power drives the falloff curve. Default 2.25 is a tight
+        // crisp halo. The "Blur" panel slider tugs it down toward ~0.7
+        // for a wide, very diffuse atmospheric haze.
+        float rim = pow(max(0.0, 0.66 - dot(vNormal, vec3(0.0, 0.0, 1.0))), rimPower);
+
+        // Aurora-like undulating bands — two low-frequency sinusoids in object space.
+        // Object-space coordinates rotate with the globe so the bands feel anchored
+        // to the sphere instead of skidding across the screen.
+        float waveA = sin(vObjectPos.y * 1.7 + uTime * 0.55) * 0.5 + 0.5;
+        float waveB = sin(vObjectPos.x * 1.3 - uTime * 0.31 + vObjectPos.z * 0.8) * 0.5 + 0.5;
+        float aurora = waveA * waveB;
+
+        // Two-tone atmosphere: warm core glow → cool limb tint, modulated by aurora.
+        // The aurora factor only nudges hue, not opacity, so we keep the rim shape clean.
+        vec3 baseTint = mix(glowColor, limbColor, 0.32);
+        vec3 color = mix(baseTint, limbColor, aurora * 0.7);
+
+        gl_FragColor = vec4(color, clamp(rim * intensity, 0.0, 0.32));
+      }
+    `,
+    uniforms: {
+      glowColor: { value: new THREE.Color(GLOBE_DEFAULT_GLOW) },
+      limbColor: { value: new THREE.Color("#6cb6ff") },
+      intensity: { value: 0.42 },
+      uTime: { value: 0 },
+      rimPower: { value: 2.25 },
+    },
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    transparent: true,
+    depthWrite: false,
+  });
+
+const buildGlobePoints = (mapData, selectedDots) =>
+  mapData.points
+    .map((point) => ({
+      ...point,
+      ...pointToGlobeCoordinate(point, mapData.image),
+      selected: selectedDots.has(point.id),
+    }))
+    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+// Number of slices the morph re-bake is split across when chunked = true.
+// 3 frames at 60fps = ~50ms maximum staleness per dot, well below the eye's
+// flicker threshold for smooth motion. Higher values (4+) start to look like
+// the dots are catching up in waves.
+export const MORPH_CHUNK_COUNT = 3;
+
+// Module-scoped scratch primitives reused by applyDotInstances on every call.
+// Hoisting them out of the function eliminates the ~12 allocations per call
+// (× N meshes × every animated frame) that were the dominant GC pressure
+// during morphs. All values are fully overwritten at the top of each call,
+// so cross-call state can't leak. applyDotInstances is NOT reentrant — but
+// neither was the old code path, since Three.js's per-frame loop is single-
+// threaded JS.
+const SCRATCH_MATRIX = new THREE.Matrix4();
+const SCRATCH_QUATERNION = new THREE.Quaternion();
+const SCRATCH_SPIN_QUATERNION = new THREE.Quaternion();
+const SCRATCH_CYLINDER_QUATERNION = new THREE.Quaternion();
+const SCRATCH_FLAT_QUATERNION = new THREE.Quaternion();
+const SCRATCH_GLOBE_QUATERNION = new THREE.Quaternion();
+const SCRATCH_CYLINDER_POSITION = new THREE.Vector3();
+const SCRATCH_CYLINDER_NORMAL = new THREE.Vector3();
+const SCRATCH_NORMAL = new THREE.Vector3();
+const SCRATCH_POSITION = new THREE.Vector3();
+const SCRATCH_FLAT_POSITION = new THREE.Vector3();
+const SCRATCH_GLOBE_POSITION = new THREE.Vector3();
+const SCRATCH_SIZE = new THREE.Vector3();
+const AXIS_UP = new THREE.Vector3(0, 1, 0);
+const AXIS_DEPTH = new THREE.Vector3(0, 0, 1);
+
+const applyDotInstances = (
+  mesh,
+  points,
+  image,
+  scale,
+  radiusOffset = 0,
+  morphProgress = 1,
+  dotRotation = 0,
+  chunk = null,
+) => {
+  const matrix = SCRATCH_MATRIX;
+  const quaternion = SCRATCH_QUATERNION;
+  const spinQuaternion = SCRATCH_SPIN_QUATERNION;
+  const cylinderQuaternion = SCRATCH_CYLINDER_QUATERNION;
+  const flatQuaternion = SCRATCH_FLAT_QUATERNION;
+  const globeQuaternion = SCRATCH_GLOBE_QUATERNION;
+  const cylinderPosition = SCRATCH_CYLINDER_POSITION;
+  const cylinderNormal = SCRATCH_CYLINDER_NORMAL;
+  const normal = SCRATCH_NORMAL;
+  const position = SCRATCH_POSITION;
+  const flatPosition = SCRATCH_FLAT_POSITION;
+  const globePosition = SCRATCH_GLOBE_POSITION;
+  const up = AXIS_UP;
+  const depth = AXIS_DEPTH;
+  const size = SCRATCH_SIZE.set(scale, scale, scale);
+  // Spin each instance around its local up-axis (which the orientation logic
+  // below aligns to the sphere normal). Lets users rotate every dot uniformly.
+  const rotationRadians = (dotRotation * Math.PI) / 180;
+  spinQuaternion.setFromAxisAngle(up, rotationRadians);
+  const wrapProgress = smoothStep(0.02, 0.7, morphProgress);
+  const sphereProgress = smoothStep(0.24, 1, morphProgress);
+  const targetRadius = GLOBE_RADIUS + radiusOffset;
+
+  // Chunked re-bake: compute matrices only for the slice [startIdx, endIdx)
+  // and ask Three.js to upload just that range to the GPU (updateRanges).
+  // Non-chunked path keeps the original semantics: full loop + full upload.
+  const totalPoints = points.length;
+  const chunkCount = chunk?.count > 1 ? chunk.count : 1;
+  const chunkIndex = chunkCount > 1 ? clampNumber(chunk.index ?? 0, 0, chunkCount - 1) : 0;
+  const chunkSize = chunkCount > 1 ? Math.ceil(totalPoints / chunkCount) : totalPoints;
+  const startIdx = chunkCount > 1 ? chunkIndex * chunkSize : 0;
+  const endIdx = chunkCount > 1 ? Math.min(totalPoints, startIdx + chunkSize) : totalPoints;
+
+  for (let i = startIdx; i < endIdx; i++) {
+    const point = points[i];
+    flatPosition.copy(pointToFlatVector3(point, image, radiusOffset));
+    globePosition.copy(latLngToVector3(point.lat, point.lng, GLOBE_RADIUS + radiusOffset));
+    normal.copy(globePosition).normalize();
+
+    // Normalised horizontal direction — drives the per-dot orientation in
+    // the cylinder phase so each dot keeps rotating toward its eventual
+    // sphere normal as it wraps.
+    cylinderNormal.set(normal.x, 0, normal.z);
+    if (cylinderNormal.lengthSq() < 0.000001) {
+      cylinderNormal.copy(depth);
+    } else {
+      cylinderNormal.normalize();
+    }
+
+    // Cylinder POSITION uses the dot's actual sphere x/z (not the
+    // normalised cylinder direction scaled to full radius). Equatorial
+    // dots are already at full radius on the sphere, so the morph looks
+    // identical for them. Polar dots, which sit near the y-axis on the
+    // sphere, now stay near the axis during the wrap instead of being
+    // flung out to (±radius, _, 0) and snapping back — that swing was
+    // making top-of-image dots travel a different visible distance from
+    // bottom-of-image dots, which read as "dots are bigger at the top
+    // during the transition." y still lerps from flat→sphere over the
+    // sphere phase so the dot field rises onto the globe smoothly.
+    cylinderPosition.x = globePosition.x;
+    cylinderPosition.z = globePosition.z;
+    cylinderPosition.y = THREE.MathUtils.lerp(flatPosition.y, globePosition.y, sphereProgress * 0.72);
+    position.copy(flatPosition).lerp(cylinderPosition, wrapProgress).lerp(globePosition, sphereProgress);
+
+    globeQuaternion.setFromUnitVectors(up, normal);
+    flatQuaternion.setFromUnitVectors(up, depth);
+    cylinderQuaternion.setFromUnitVectors(up, cylinderNormal);
+    quaternion.copy(flatQuaternion).slerp(cylinderQuaternion, wrapProgress).slerp(globeQuaternion, sphereProgress);
+    // Apply the uniform rotation in the geometry's local frame (around up-axis)
+    // before the orientation quaternion rotates it into world space.
+    quaternion.multiply(spinQuaternion);
+
+    matrix.compose(position, quaternion, size);
+    mesh.setMatrixAt(i, matrix);
+  }
+
+  // Tell the renderer which range of the InstancedBufferAttribute is dirty.
+  // Three.js r163+ supports an array of ranges on `updateRanges`; we replace
+  // the contents each call. Empty array (full upload) is the default
+  // semantics, matching pre-chunking behaviour.
+  const instanceMatrix = mesh.instanceMatrix;
+  if (Array.isArray(instanceMatrix.updateRanges)) {
+    instanceMatrix.updateRanges.length = 0;
+    if (chunkCount > 1) {
+      instanceMatrix.updateRanges.push({ start: startIdx * 16, count: (endIdx - startIdx) * 16 });
+    }
+  }
+  instanceMatrix.needsUpdate = true;
+};
+
+// Shared per-frame uniform so every dot material twinkles in sync against the same clock.
+// Set in the animation loop via twinkleUniforms.uTime.value = now / 1000.
+// uSizeVary toggles the per-instance size jitter (0 = uniform dots, 1 = jitter on).
+export const twinkleUniforms = {
+  uTime: { value: 0 },
+  twinkleAmount: { value: 0.18 },
+  twinkleRate: { value: 1.3 },
+  uSizeVary: { value: 0 },
+};
+
+// Attach the twinkle hook to a material: injects per-instance phase + sine modulation
+// of diffuse color so each dot pulses on its own clock. Works on both
+// MeshStandardMaterial (replaces <emissivemap_fragment>) and MeshBasicMaterial
+// (replaces <color_fragment>) — checked per material type. Safe to call multiple
+// times — Three.js caches the compiled program by customProgramCacheKey.
+const wireTwinkleMaterial = (material, cacheKey) => {
+  if (material.userData?.twinkleWired) return material;
+  material.userData = { ...(material.userData || {}), twinkleWired: true };
+  const isBasic = material.isMeshBasicMaterial === true;
+
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = twinkleUniforms.uTime;
+    shader.uniforms.uTwinkleAmount = twinkleUniforms.twinkleAmount;
+    shader.uniforms.uTwinkleRate = twinkleUniforms.twinkleRate;
+    shader.uniforms.uSizeVary = twinkleUniforms.uSizeVary;
+
+    shader.vertexShader = `
+      attribute float aPhase;
+      varying float vTwinkle;
+      uniform float uTime;
+      uniform float uTwinkleAmount;
+      uniform float uTwinkleRate;
+      uniform float uSizeVary;
+      ${shader.vertexShader}
+    `.replace(
+      "#include <begin_vertex>",
+      `
+      #include <begin_vertex>
+      float twPhase = aPhase * 6.2831853;
+      vTwinkle = (1.0 - uTwinkleAmount) + uTwinkleAmount * (0.5 + 0.5 * sin(uTime * uTwinkleRate + twPhase));
+      // Per-instance size variation (0.82 → 1.18). Gated by uSizeVary so the
+      // default reads as a uniform grid; toggling the control re-introduces
+      // the organic density variation.
+      float sizeJitter = mix(1.0, 0.82 + 0.36 * aPhase, uSizeVary);
+      transformed *= sizeJitter;
+      `,
+    );
+
+    if (isBasic) {
+      shader.fragmentShader = `
+        varying float vTwinkle;
+        ${shader.fragmentShader}
+      `.replace(
+        "#include <color_fragment>",
+        `
+        #include <color_fragment>
+        diffuseColor.rgb *= vTwinkle;
+        `,
+      );
+    } else {
+      shader.fragmentShader = `
+        varying float vTwinkle;
+        ${shader.fragmentShader}
+      `.replace(
+        "#include <emissivemap_fragment>",
+        `
+        #include <emissivemap_fragment>
+        totalEmissiveRadiance *= vTwinkle;
+        diffuseColor.rgb *= vTwinkle;
+        `,
+      );
+    }
+  };
+
+  material.customProgramCacheKey = () => `twinkle:${cacheKey}`;
+  return material;
+};
+
+const attachPhaseAttribute = (geometry, instanceCount, seed = 0) => {
+  if (geometry.getAttribute("aPhase")?.count === instanceCount) return;
+  const phases = new Float32Array(instanceCount);
+  // Stable per-mesh random so the twinkle pattern is reproducible across re-renders.
+  let s = seed * 9301 + 49297;
+  for (let i = 0; i < instanceCount; i++) {
+    s = (s * 9301 + 49297) % 233280;
+    phases[i] = s / 233280;
+  }
+  geometry.setAttribute("aPhase", new THREE.InstancedBufferAttribute(phases, 1));
+};
+
+const createInstancedDotMesh = (points, image, geometry, material, scale, radiusOffset, morphProgress, dotRotation = 0) => {
+  if (!points.length) return null;
+  attachPhaseAttribute(geometry, points.length, points.length + Math.round(scale * 1000));
+  const mesh = new THREE.InstancedMesh(geometry, material, points.length);
+  mesh.frustumCulled = false;
+  mesh.userData.pointIds = points.map((point) => point.id);
+  mesh.userData.points = points;
+  mesh.userData.image = image;
+  mesh.userData.scale = scale;
+  mesh.userData.radiusOffset = radiusOffset;
+  mesh.userData.dotRotation = dotRotation;
+  applyDotInstances(mesh, points, image, scale, radiusOffset, morphProgress, dotRotation);
+  return mesh;
+};
+
+// When `chunked` is true, only 1/MORPH_CHUNK_COUNT of the dots are re-baked
+// this frame — the group remembers which chunk to rotate to next via
+// userData.morphChunk. Visual lag per dot is at most (CHUNK_COUNT - 1) frames
+// = ~33ms at 60fps, imperceptible against the morph's 1.5s timeline.
+// When `chunked` is false (the default), every dot is re-baked — caller
+// MUST pass false on the frame the morph completes to flush stragglers.
+export const applyDotLayerMorph = (group, morphProgress, chunked = false) => {
+  if (!group) return;
+  const chunkCount = chunked ? MORPH_CHUNK_COUNT : 1;
+  let chunkIndex = 0;
+  if (chunked) {
+    chunkIndex = ((group.userData.morphChunk ?? -1) + 1) % chunkCount;
+    group.userData.morphChunk = chunkIndex;
+  } else {
+    group.userData.morphChunk = -1;
+  }
+  group.children.forEach((child) => {
+    if (!child.isInstancedMesh || !child.userData.points) return;
+    applyDotInstances(
+      child,
+      child.userData.points,
+      child.userData.image,
+      child.userData.scale,
+      child.userData.radiusOffset,
+      morphProgress,
+      child.userData.dotRotation ?? 0,
+      chunked ? { index: chunkIndex, count: chunkCount } : null,
+    );
+  });
+  group.userData.morphProgress = morphProgress;
+};
+
+// Re-apply instance matrices with an animated rotation override without
+// rebuilding the dot layer. Used by the per-frame loop when the user toggles
+// on rotation animation — the static userData.dotRotation stays untouched so
+// turning the animation off restores the slider's chosen angle.
+// Same chunking rules as applyDotLayerMorph: pass chunked = true while the
+// animation runs, false once on the final settle to flush any stale dots.
+export const applyDotLayerSpin = (group, rotation, morphProgress, chunked = false) => {
+  if (!group) return;
+  const chunkCount = chunked ? MORPH_CHUNK_COUNT : 1;
+  let chunkIndex = 0;
+  if (chunked) {
+    chunkIndex = ((group.userData.spinChunk ?? -1) + 1) % chunkCount;
+    group.userData.spinChunk = chunkIndex;
+  } else {
+    group.userData.spinChunk = -1;
+  }
+  group.children.forEach((child) => {
+    if (!child.isInstancedMesh || !child.userData.points) return;
+    applyDotInstances(
+      child,
+      child.userData.points,
+      child.userData.image,
+      child.userData.scale,
+      child.userData.radiusOffset,
+      morphProgress,
+      rotation,
+      chunked ? { index: chunkIndex, count: chunkCount } : null,
+    );
+  });
+};
+
+// Linear gradient sampler. Projects each dot's image-space coordinate onto
+// the gradient direction vector, normalizes to [0, 1] using the image's
+// bounding box (so the gradient always fully sweeps from one corner to
+// the opposite), then lerps between `from` and `to` colors.
+const buildGradientColorSampler = (gradient, imageWidth, imageHeight) => {
+  const angleRad = ((gradient.angle ?? 90) * Math.PI) / 180;
+  const dirX = Math.sin(angleRad);
+  const dirY = -Math.cos(angleRad);
+  // Project the four image corners onto the direction to get the actual
+  // gradient extent. Avoids the gradient flattening to a single midtone for
+  // off-axis angles.
+  const corners = [
+    [0, 0],
+    [imageWidth, 0],
+    [0, imageHeight],
+    [imageWidth, imageHeight],
+  ];
+  let minProj = Infinity;
+  let maxProj = -Infinity;
+  corners.forEach(([x, y]) => {
+    const p = x * dirX + y * dirY;
+    if (p < minProj) minProj = p;
+    if (p > maxProj) maxProj = p;
+  });
+  const range = Math.max(1e-6, maxProj - minProj);
+  const fromColor = new THREE.Color(gradient.from);
+  const toColor = new THREE.Color(gradient.to);
+  const fromAlpha = gradient.fromAlpha ?? 1;
+  const toAlpha = gradient.toAlpha ?? 1;
+  const hasAlpha = fromAlpha < 1 || toAlpha < 1;
+  const result = new THREE.Color();
+  // CSS-style color-hint remapping: when gradient.midpoint is provided the
+  // 50/50 mix lands at that fraction of the gradient length instead of 0.5.
+  const midpoint = gradient.midpoint;
+  return (point) => {
+    const proj = point.x * dirX + point.y * dirY;
+    const t = Math.max(0, Math.min(1, (proj - minProj) / range));
+    const u = remapTByMidpoint(t, midpoint);
+    result.copy(fromColor).lerp(toColor, u);
+    // InstancedMesh has no per-instance alpha attribute, so the only way to
+    // make gradient.fromAlpha / toAlpha read on the dot field is to fold
+    // the alpha into the RGB itself: alpha=0 → black (invisible against
+    // the dark canvas), alpha=1 → original colour. This matches CSS
+    // pre-multiplied alpha on a solid black background — close enough to
+    // what users intuitively expect from a transparency control without
+    // needing a custom shader.
+    if (hasAlpha) {
+      const a = fromAlpha + (toAlpha - fromAlpha) * u;
+      if (a < 1) result.multiplyScalar(Math.max(0, a));
+    }
+    return result;
+  };
+};
+
+export const buildGlobeDotLayer = ({
+  mapData,
+  selectedDots,
+  dotColor,
+  dotColorAlpha = 1,
+  dotGradient = null,
+  dotSize,
+  shape,
+  dotRotation = 0,
+  asciiSymbol = "*",
+  shaderSettings,
+  globeSettings,
+  morphProgress = 1,
+  customShapeTexture = null,
+}) => {
+  const group = new THREE.Group();
+  const points = buildGlobePoints(mapData, selectedDots);
+  const normalPoints = points.filter((point) => !point.selected);
+  const selectedPoints = points.filter((point) => point.selected);
+  const effect = shaderSettings.effect || "none";
+  const intensity = clampNumber(shaderSettings.intensity ?? 45, 0, 100) / 100;
+  const look = globeSettings?.look ?? DEFAULT_GLOBE_SETTINGS.look;
+  const isBorderless = look === "borderless";
+  const isAsciiText = shape === "ASCII" && asciiSymbol && asciiSymbol !== "*";
+  const asciiChars = isAsciiText ? Array.from(asciiSymbol) : [];
+  const isAsciiRandom = asciiChars.length > 1;
+  const geometry = createGlobeDotGeometry(shape, asciiSymbol);
+  const size = 0.004 + clampNumber(dotSize, 0.1, 25) * 0.0022;
+  const dotLift = clampNumber(globeSettings?.dotLift ?? DEFAULT_GLOBE_SETTINGS.dotLift, 0, 100) / 100;
+  const baseRadiusOffset = 0.006 + dotLift * 0.08;
+  const color = isBorderless && dotColor === "#ffffff" ? new THREE.Color("#f5fbff") : new THREE.Color(dotColor);
+  const emissiveColor = isBorderless ? new THREE.Color("#7edfff").lerp(color, 0.48) : color;
+  const accentColor = new THREE.Color(CLICK_HIGHLIGHT);
+  const emissiveBoost = isBorderless ? 0.7 + intensity * 0.7 : effect === "none" ? 0.22 : 0.5 + intensity * 0.85;
+
+  const makeAsciiMaterial = (texture, materialColor) =>
+    wireTwinkleMaterial(
+      new THREE.MeshBasicMaterial({
+        color: materialColor,
+        map: texture,
+        transparent: true,
+        alphaTest: 0.18,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+      "ascii",
+    );
+
+  // Flat, unlit dots — Stripe-style. MeshBasicMaterial ignores scene lighting so
+  // each dot reads as a uniform painted shape rather than a tiny lit hemisphere.
+  // The color carries both the chosen dot color and a slight brightening for
+  // borderless mode that the old emissive path used to do.
+  // When a gradient is set we paint each instance individually via instanceColor,
+  // so the material color is forced to white to avoid double-multiplying.
+  const gradientActive = dotGradient && dotGradient.from && dotGradient.to;
+  const gradientSampler = gradientActive
+    ? buildGradientColorSampler(dotGradient, mapData.image.width, mapData.image.height)
+    : null;
+  const flatColor = gradientActive
+    ? new THREE.Color(1, 1, 1)
+    : isBorderless
+      ? color.clone().lerp(new THREE.Color("#ffffff"), 0.18)
+      : color;
+  // Effective material opacity. For gradients we average the two stops (a
+  // single material can only hold one opacity value); per-dot fidelity is
+  // available in the SVG export path via fill-opacity.
+  const effectiveOpacity = gradientActive
+    ? clampNumber(((dotGradient.fromAlpha ?? 1) + (dotGradient.toAlpha ?? 1)) / 2, 0, 1)
+    : clampNumber(dotColorAlpha, 0, 1);
+  const standardMaterial = wireTwinkleMaterial(
+    new THREE.MeshBasicMaterial({
+      color: flatColor,
+      transparent: true,
+      opacity: effectiveOpacity,
+    }),
+    `flat:${isBorderless ? "b" : "c"}`,
+  );
+  const standardSelectedMaterial = wireTwinkleMaterial(
+    new THREE.MeshBasicMaterial({
+      color: accentColor,
+      transparent: true,
+      opacity: 1,
+    }),
+    "flat:sel",
+  );
+
+  const addAsciiMeshes = (groupPoints, materialColor, instanceSize, radiusOffset) => {
+    if (isAsciiRandom) {
+      const charBuckets = new Map();
+      asciiChars.forEach((char) => charBuckets.set(char, []));
+      groupPoints.forEach((point) => {
+        const char = asciiChars[hashString(point.id) % asciiChars.length];
+        charBuckets.get(char).push(point);
+      });
+      charBuckets.forEach((bucketPoints, char) => {
+        if (!bucketPoints.length) return;
+        const texture = createAsciiCanvasTexture(char);
+        const material = makeAsciiMaterial(texture, materialColor);
+        const mesh = createInstancedDotMesh(
+          bucketPoints,
+          mapData.image,
+          geometry.clone(),
+          material,
+          instanceSize,
+          radiusOffset,
+          morphProgress,
+          dotRotation,
+        );
+        if (mesh) group.add(mesh);
+      });
+      return;
+    }
+
+    const texture = createAsciiCanvasTexture(asciiChars[0]);
+    const material = makeAsciiMaterial(texture, materialColor);
+    const mesh = createInstancedDotMesh(
+      groupPoints,
+      mapData.image,
+      geometry.clone(),
+      material,
+      instanceSize,
+      radiusOffset,
+      morphProgress,
+      dotRotation,
+    );
+    if (mesh) group.add(mesh);
+  };
+
+  const isCustomShape = shape === "Custom" && customShapeTexture;
+
+  if (isAsciiText) {
+    addAsciiMeshes(normalPoints, color, size, baseRadiusOffset);
+    addAsciiMeshes(selectedPoints, accentColor, size * 1.18, baseRadiusOffset + 0.01);
+  } else if (isCustomShape) {
+    const customMaterial = makeAsciiMaterial(customShapeTexture, color);
+    const customSelectedMaterial = makeAsciiMaterial(customShapeTexture, accentColor);
+    const normalMesh = createInstancedDotMesh(
+      normalPoints,
+      mapData.image,
+      geometry,
+      customMaterial,
+      size,
+      baseRadiusOffset,
+      morphProgress,
+      dotRotation,
+    );
+    const selectedMesh = createInstancedDotMesh(
+      selectedPoints,
+      mapData.image,
+      geometry.clone(),
+      customSelectedMaterial,
+      size * 1.18,
+      baseRadiusOffset + 0.01,
+      morphProgress,
+      dotRotation,
+    );
+    if (normalMesh) group.add(normalMesh);
+    if (selectedMesh) group.add(selectedMesh);
+  } else {
+    const normalMesh = createInstancedDotMesh(
+      normalPoints,
+      mapData.image,
+      geometry,
+      standardMaterial,
+      size,
+      baseRadiusOffset,
+      morphProgress,
+      dotRotation,
+    );
+    const selectedMesh = createInstancedDotMesh(
+      selectedPoints,
+      mapData.image,
+      geometry.clone(),
+      standardSelectedMaterial,
+      size * 1.18,
+      baseRadiusOffset + 0.01,
+      morphProgress,
+      dotRotation,
+    );
+    if (normalMesh) {
+      if (gradientSampler) {
+        normalPoints.forEach((point, index) => {
+          normalMesh.setColorAt(index, gradientSampler(point));
+        });
+        if (normalMesh.instanceColor) normalMesh.instanceColor.needsUpdate = true;
+      }
+      group.add(normalMesh);
+    }
+    if (selectedMesh) group.add(selectedMesh);
+  }
+
+  if (isBorderless || effect === "bloom" || effect === "crt") {
+    const glowGeometry = createGlobeDotGeometry("Circle");
+    const glowMaterial = new THREE.MeshBasicMaterial({
+      color: isBorderless ? new THREE.Color("#8ddfff") : color,
+      transparent: true,
+      opacity: isBorderless ? 0.075 + intensity * 0.055 : 0.11 + intensity * 0.14,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const glowMesh = createInstancedDotMesh(
+      points,
+      mapData.image,
+      glowGeometry,
+      glowMaterial,
+      size * (isBorderless ? 2.05 + intensity * 0.35 : 2.25 + intensity),
+      baseRadiusOffset + (isBorderless ? 0.024 : 0.02),
+      morphProgress,
+      dotRotation,
+    );
+    if (glowMesh) group.add(glowMesh);
+  }
+
+  if (effect === "chromatic") {
+    const split = clampNumber(shaderSettings.split ?? 7, 0, 30) * 0.06;
+    const chromaGeometry = createGlobeDotGeometry("Circle");
+    [
+      { offset: -split, color: "#ff3c94" },
+      { offset: split, color: "#40e0ff" },
+    ].forEach((layer) => {
+      const chromaPoints = points.map((point) => ({
+        ...point,
+        lng: normalizeLongitude(point.lng + layer.offset),
+      }));
+      const material = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(layer.color),
+        transparent: true,
+        opacity: 0.34 + intensity * 0.22,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      const mesh = createInstancedDotMesh(
+        chromaPoints,
+        mapData.image,
+        chromaGeometry.clone(),
+        material,
+        size * 1.2,
+        baseRadiusOffset + 0.018,
+        morphProgress,
+        dotRotation,
+      );
+      if (mesh) group.add(mesh);
+    });
+  }
+
+  if (effect === "threshold") {
+    group.scale.setScalar(1 + intensity * 0.018);
+  }
+
+  group.userData.dotCount = points.length;
+  group.userData.morphProgress = morphProgress;
+  return group;
+};
+
+export const applyGlobeShellProgress = (refs, morphProgress, globeSettings = DEFAULT_GLOBE_SETTINGS) => {
+  if (!refs) return;
+  const settings = { ...DEFAULT_GLOBE_SETTINGS, ...globeSettings };
+  syncGraticule(refs, settings);
+  // Cross-fade window centred on the morph midpoint (15–85% of progress).
+  // Symmetric so flat→globe and globe→flat feel identical, and timed so the
+  // cross-fade peak (progress 0.5) lines up exactly with the cinematic
+  // flourishes (FOV breath, scale dip, Z roll, Y spin kick — all peak at
+  // sin(π·0.5) = 1). A narrower window like (0.05, 0.5) made globe→flat
+  // feel laggy: progress runs 1→0 so the cross-fade hit only in the
+  // second half of the timeline, leaving the first 850ms visually static
+  // while the camera dollied. Widening it to (0.15, 0.85) keeps the
+  // cross-fade symmetric around the midpoint in both directions.
+  const shellProgress = smoothStep(0.15, 0.85, morphProgress);
+  const glowStrength = settings.glow ? clampNumber(settings.glowStrength, 0, 100) / 100 : 0;
+  const gridStrength = settings.grid ? clampNumber(settings.gridStrength, 0, 100) / 100 : 0;
+  // In solid render mode the world texture lives on the base material — its
+  // visibility should NOT depend on the Surface toggle (which controls the
+  // dot-mode shell layer). Force-on the strength when solidActive so the
+  // textured sphere always renders in globe view regardless of the toggle.
+  const surfaceStrengthBase = settings.surface ? clampNumber(settings.surfaceStrength, 0, 100) / 100 : 0;
+  const surfaceStrength = refs.solidActive ? Math.max(1, surfaceStrengthBase) : surfaceStrengthBase;
+  const routeStrength = settings.look === "borderless" && settings.routes
+    ? clampNumber(settings.routesStrength, 0, 100) / 100
+    : 0;
+
+  // Surface opacity is now LITERAL: slider 0 → material opacity 0,
+  // slider 100 → material opacity 1.0 (fully opaque). The old code
+  // multiplied the slider into a per-mode `baseOpacity` cap (~0.28-
+  // 0.34), so even at slider 100 the sphere was barely 30% opaque
+  // and network arcs on the back hemisphere bled through. That
+  // contradicted the "100% = opaque" mental model. Removing the cap
+  // lets the slider's top end actually hide the network behind the
+  // sphere, while the bottom end (0) reveals it cleanly.
+  refs.baseMaterial.opacity = shellProgress * surfaceStrength;
+  refs.atmosphereMaterial.uniforms.intensity.value = refs.atmosphereIntensity * shellProgress * glowStrength;
+  // "Blur" slider in the panel — softens the rim falloff a touch so
+  // the on-sphere atmosphere reads slightly fuzzier as the slider
+  // climbs. The dominant blur effect is the CSS drop-shadow on the
+  // canvas (see App.jsx) which actually bleeds OUTSIDE the sphere
+  // geometry; this shader change just keeps the inner edge from
+  // looking sharper than the outer halo when both are visible.
+  const blurNorm = clampNumber(settings.glowSpread ?? 50, 0, 100) / 100;
+  refs.atmosphereMaterial.uniforms.rimPower.value = 2.25 + blurNorm * (1.4 - 2.25);
+  if (refs.outerHaloMaterial) {
+    refs.outerHaloMaterial.uniforms.intensity.value = 0.5 * shellProgress * glowStrength;
+    refs.outerHaloMaterial.uniforms.rimPower.value = 4.6 + blurNorm * (2.6 - 4.6);
+  }
+  // Grid opacity is now LITERAL like Surface opacity above — slider
+  // 0–100 → 0–1 line alpha. The old code multiplied into a per-mode
+  // graticuleOpacity cap (~0.04–0.16), so the slider never reached
+  // actual visibility at its top end. Removing the cap lets the user
+  // get a fully visible grid at 100 and a clean fade to invisible at 0.
+  refs.graticule.children.forEach((line) => {
+    line.material.opacity = shellProgress * gridStrength;
+  });
+  // Hard-hide the sphere meshes when we're effectively in flat mode. Even with
+  // opacity 0 + transparent: true, three.js still issues draw calls for the
+  // mesh — combined with the world texture in solid mode that can leave a
+  // visible "black circle" artifact in the middle of the flat map.
+  const sphereVisible = shellProgress > 0.005;
+  if (refs.globeMesh) refs.globeMesh.visible = sphereVisible && surfaceStrength > 0.001;
+  if (refs.atmosphere) refs.atmosphere.visible = sphereVisible && glowStrength > 0.001;
+  if (refs.outerHalo) refs.outerHalo.visible = sphereVisible && glowStrength > 0.001;
+  if (refs.graticule) refs.graticule.visible = sphereVisible && gridStrength > 0.001;
+  // Flat solid plane is the mirror image — opacity is (1 − shellProgress)
+  // when solid mode is active, fully hidden otherwise. The plane shares
+  // its texture with the sphere via flatSolidMaterial.map, so this is a
+  // clean cross-fade between two views of the same world data.
+  if (refs.flatSolidMesh && refs.flatSolidMaterial) {
+    const flatOpacity = refs.solidActive ? (1 - shellProgress) : 0;
+    refs.flatSolidMaterial.opacity = flatOpacity;
+    refs.flatSolidMesh.visible = flatOpacity > 0.005;
+  }
+  if (refs.borderlessNetwork) {
+    const routeOpacity = shellProgress * routeStrength;
+    refs.borderlessNetwork.visible = routeOpacity > 0.001;
+    refs.borderlessNetwork.userData.opacity = routeOpacity;
+    refs.borderlessNetwork.traverse((child) => {
+      if (!child.material || child.userData.routePoints) return;
+      child.material.opacity = (child.userData.baseOpacity ?? 0.3) * routeOpacity;
+    });
+  }
+  if (refs.globeNetwork) {
+    const networkStrength = settings.network ? clampNumber(settings.networkStrength, 0, 100) / 100 : 0;
+    refs.globeNetwork.userData.opacity = shellProgress * networkStrength;
+    refs.globeNetwork.userData.arcs = settings.networkArcs ?? true;
+    refs.globeNetwork.userData.pulses = settings.networkPulses ?? true;
+  }
+};

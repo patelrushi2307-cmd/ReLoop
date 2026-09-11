@@ -1,0 +1,676 @@
+/* Examples-page-only styles (signal-lost CRT screen + newspaper).
+   Co-located and imported by examples-page.jsx so that, with the
+   route lazy-loaded, this CSS ships in the /examples chunk instead
+   of the global initial payload. */
+
+/* ============================================================
+   Game Over — "Signal lost" CRT screen frame (.signal-lost)
+   Pure-CSS take on Karl Saunders' CRT effect (vignette + RGB
+   scanlines + subtle wobble). Frame only — no cabinet/VCR noise.
+   ============================================================ */
+/* The room photo, kept at its native aspect so our screen stays aligned. */
+.signal-lost .tv-stage {
+  position: relative;
+  aspect-ratio: 1672 / 941;
+  width: min(100%, calc(100svh * 1.7768));
+  max-height: 100%;
+  background: url("/retro-tv.jpg") center center / cover no-repeat;
+  /* Fade all four edges of the photo into the black section background.
+     The CRT sits at ~27–71% x and ~17–69% y, so the edge fades never
+     touch it. Two gradients intersected = fade on any edge. */
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, #000 10%, #000 76%, transparent 100%),
+    linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0%, #000 10%, #000 76%, transparent 100%),
+    linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  mask-composite: intersect;
+}
+
+/* Our CRT picture — absolutely placed over the Panasonic's glass.
+   Percentages map to the photo since .tv-stage shares its aspect ratio. */
+.signal-lost .crt {
+  position: absolute;
+  left: var(--crt-left, 27.4%);
+  top: var(--crt-top, 17.1%);
+  width: var(--crt-w, 43.5%);
+  height: var(--crt-h, 52.3%);
+  container-type: size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  padding: 3cqh 6cqh 4cqh;
+  /* match the rounded cathode glass */
+  border-radius: var(--crt-radius, 13.6% / 17.3%) !important;
+  background: radial-gradient(126% 126% at 50% 44%, #0c1018 0%, #06070b 60%, #020308 100%);
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 90px 10px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 26px rgba(0, 0, 0, 0.6);
+  animation: crt-wobble 110ms steps(2) infinite;
+}
+
+@keyframes crt-wobble {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0.4px, 0); }
+}
+
+/* RGB scanlines (subtle) */
+.signal-lost .crt-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.18) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+  background-size: 100% 3px, 4px 100%;
+}
+
+/* Animated static / VCR tracking noise */
+.signal-lost .crt-noise {
+  position: absolute;
+  inset: 0;
+  z-index: 26;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.12;
+  mix-blend-mode: screen;
+  image-rendering: pixelated;
+}
+
+/* Slow vertical refresh/roll bar */
+.signal-lost .crt-rollbar {
+  position: absolute;
+  inset: 0;
+  z-index: 27;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.035) 48%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.035) 52%,
+    transparent 100%
+  );
+  background-size: 100% 220%;
+  animation: crt-roll 7s linear infinite;
+}
+@keyframes crt-roll {
+  0% { background-position: 0 -60%; }
+  100% { background-position: 0 170%; }
+}
+
+/* Curved-corner vignette — the "frame" */
+.signal-lost .crt-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(56% 38% at 28% 12%, rgba(255, 255, 255, 0.06), transparent 60%),
+    radial-gradient(112% 112% at 50% 50%, transparent 34%, rgba(0, 0, 0, 0.62) 76%, rgba(0, 0, 0, 0.96) 100%);
+  box-shadow: inset 0 0 90px 18px rgba(0, 0, 0, 0.72);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-lost .crt,
+  .signal-lost .crt-rollbar { animation: none; }
+}
+
+/* "Signal lost" headline — corrupt RGB-split glitch (matches the globe) */
+.signal-lost .signal-glitch {
+  animation: signal-glitch 3.2s infinite;
+  will-change: transform, text-shadow;
+}
+@keyframes signal-glitch {
+  0%, 88%, 100% {
+    text-shadow:
+      -1px 0 rgba(255, 0, 60, 0.55),
+      1px 0 rgba(0, 229, 255, 0.5),
+      0 0 26px rgba(255, 60, 86, 0.4);
+    transform: translateX(0);
+  }
+  90% { text-shadow: -4px 0 #ff003c, 3px 0 #00e5ff, 0 0 26px rgba(255, 60, 86, 0.4); transform: translateX(2px); }
+  92% { text-shadow: 3px 0 #ff003c, -3px 0 #00e5ff, 0 0 26px rgba(255, 60, 86, 0.4); transform: translateX(-2px); }
+  94% { text-shadow: -4px 0 #ff003c, 4px 0 #00e5ff; transform: translateX(1px); }
+  96% { text-shadow: -2px 0 #ff003c, 2px 0 #00e5ff, 0 0 26px rgba(255, 60, 86, 0.4); transform: translateX(0); }
+}
+
+/* YES — flickers on and off like a failing signal */
+.signal-lost .signal-yes {
+  animation: signal-yes-flicker 1.4s infinite steps(1);
+}
+@keyframes signal-yes-flicker {
+  0%, 100% { opacity: 1; }
+  82% { opacity: 1; }
+  84% { opacity: 0.15; }
+  86% { opacity: 1; }
+  90% { opacity: 0.15; }
+  93% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signal-lost .signal-glitch,
+  .signal-lost .signal-yes { animation: none; }
+}
+
+/* ============================================================
+   "The Globe Dispatch" — vintage broadsheet front page (.newsroom)
+   Halftone globe = the rotating lead press photo. Sharp corners
+   are fine here (the global border-radius:0 reset suits newsprint).
+   ============================================================ */
+.showcase--news.newsroom {
+  background:
+    radial-gradient(120% 110% at 50% -10%, rgba(0, 0, 0, 0.05), transparent 55%),
+    #f1e8d4;
+  color: #1c1813;
+  font-family: Georgia, "Times New Roman", serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(14px, 2.5vw, 40px);
+}
+
+.newsroom .news-paper {
+  width: min(1180px, 97%);
+  display: flex;
+  flex-direction: column;
+  /* faint newsprint grain */
+  background-image: radial-gradient(rgba(28, 24, 19, 0.045) 0.5px, transparent 0.6px);
+  background-size: 4px 4px;
+  padding: clamp(10px, 1.5vw, 22px);
+}
+
+.newsroom .news-masthead {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+}
+.newsroom .news-title {
+  font-family: "UnifrakturMaguntia", Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(40px, 7vw, 96px);
+  line-height: 0.9;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+.newsroom .news-mast-side {
+  font-size: clamp(9px, 1vw, 12px);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  line-height: 1.5;
+  color: #4a4031;
+  text-align: center;
+}
+
+.newsroom .news-dateline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(10px, 2vw, 30px);
+  margin-top: clamp(8px, 1.2vw, 14px);
+  padding: 6px 0;
+  border-top: 3px double #1c1813;
+  border-bottom: 3px double #1c1813;
+  font-size: clamp(8.5px, 0.95vw, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.newsroom .news-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 2.3fr);
+  gap: clamp(16px, 2.4vw, 36px);
+  margin-top: clamp(12px, 1.6vw, 22px);
+  align-items: start;
+  min-height: 0;
+}
+
+/* narrow info column */
+.newsroom .news-col {
+  font-size: clamp(11px, 0.95vw, 13px);
+  line-height: 1.5;
+  text-align: justify;
+}
+.newsroom .news-col p { margin: 0 0 9px; }
+.newsroom .news-col > p:first-of-type::first-letter {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 900;
+  font-size: 3.2em;
+  float: left;
+  line-height: 0.66;
+  padding: 3px 6px 0 0;
+}
+
+/* wide main column: lead photo + the rest */
+.newsroom .news-main {
+  min-width: 0;
+  text-align: center;
+  border-left: 1px solid rgba(28, 24, 19, 0.28);
+  padding-left: clamp(16px, 2.4vw, 36px);
+}
+
+.newsroom .news-text {
+  width: 100%;
+  margin-top: clamp(8px, 1.2vw, 16px);
+  font-size: clamp(12px, 1.05vw, 14.5px);
+  line-height: 1.55;
+  text-align: justify;
+  column-count: 2;
+  column-gap: clamp(20px, 3vw, 40px);
+  column-rule: 1px solid rgba(28, 24, 19, 0.28);
+}
+.newsroom .news-text > p { margin: 0 0 9px; }
+.newsroom .news-subhead {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(13px, 1.3vw, 17px);
+  text-align: center;
+  margin: 4px 0 6px;
+  break-inside: avoid;
+}
+.newsroom .news-text > p:first-of-type::first-letter {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 900;
+  font-size: 3.4em;
+  float: left;
+  line-height: 0.66;
+  padding: 4px 7px 0 0;
+}
+
+.newsroom .news-kicker {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(11px, 1vw, 13px);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  border-bottom: 1px solid #1c1813;
+  padding-bottom: 4px;
+  margin: 0 0 9px;
+}
+.newsroom .news-feature .news-kicker { align-self: stretch; }
+
+.newsroom .news-headline {
+  font-family: "Playfair Display", Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(26px, 3.6vw, 52px);
+  line-height: 1.02;
+  margin: 0 0 6px;
+}
+.newsroom .news-deck {
+  font-style: italic;
+  font-size: clamp(12px, 1.2vw, 16px);
+  color: #3a3225;
+  margin: 0 auto 13px;
+  max-width: 46ch;
+}
+
+.newsroom .news-photo {
+  width: 100%;
+  margin: 0;
+}
+.newsroom .news-photo-frame {
+  width: 100%;
+  border: 1px solid #1c1813;
+  padding: clamp(6px, 0.8vw, 12px);
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  /* wide letterbox — spans the column side to side */
+  aspect-ratio: 9 / 5;
+}
+.newsroom .news-globe {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform: translate(var(--news-globe-x, 0%), var(--news-globe-y, 0%))
+    scale(calc(var(--news-globe-scale, 150) / 100));
+  transform-origin: center;
+}
+/* globe square, centered in the letterbox; overflow clipped by the frame */
+.newsroom .news-globe iframe {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.newsroom figcaption {
+  font-size: clamp(9px, 0.9vw, 11px);
+  font-style: italic;
+  color: #4a4031;
+  text-align: center;
+  margin-top: 7px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(28, 24, 19, 0.3);
+}
+
+.newsroom .news-index {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: clamp(10px, 0.95vw, 12px);
+}
+.newsroom .news-index li {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dotted rgba(28, 24, 19, 0.45);
+  padding: 3px 0;
+}
+.newsroom .news-byline { font-style: italic; color: #4a4031; margin-top: 8px; }
+
+.newsroom .news-quote {
+  margin: 0;
+  padding: 8px 0 0;
+  border-top: 1px solid rgba(28, 24, 19, 0.28);
+  font-family: "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(13px, 1.2vw, 16px);
+  line-height: 1.35;
+  text-align: left;
+}
+.newsroom .news-quote cite {
+  display: block;
+  margin-top: 6px;
+  font-family: Georgia, serif;
+  font-style: normal;
+  font-size: clamp(9px, 0.9vw, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #4a4031;
+}
+
+/* Mobile-only decorations: hidden on desktop so they never affect that layout.
+   The hamburger is a flex child of every company nav (would otherwise claim a
+   gap slot); the Stripe scrim is a hero overlay. Both flip to visible only in
+   the phone media query below. */
+.showcase-nav-burger { display: none; }
+.stripe-hero-scrim { display: none; }
+/* Desktop shows the full event copy; the phone short version is hidden here. */
+.vercel-evt-short { display: none; }
+/* Copy wrapper: inherits the inner's gap + centering so desktop is unchanged;
+   on phones it flex-grows and centers the copy between nav and globe band. */
+.vercel-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: inherit;
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .newsroom .news-body { grid-template-columns: 1fr; }
+  /* Lead the mobile front page with "The World, Rendered" right under the
+     masthead, instead of the wire/index sidebar. */
+  .newsroom .news-main { border-left: 0; padding-left: 0; order: -1; }
+  .newsroom .news-text { column-count: 1; }
+
+  /* Mobile company navs: the cramped link row + CTAs collapse to a
+     (decorative) hamburger so the hero reads cleanly on a phone. */
+  .showcase-nav-items,
+  .showcase-nav-right { display: none; }
+  .showcase-nav-burger {
+    display: block;
+    margin-left: auto;
+    width: 18px;
+    height: 12px;
+    opacity: 0.82;
+    background:
+      linear-gradient(currentColor 0 0) top / 100% 1.5px,
+      linear-gradient(currentColor 0 0) center / 100% 1.5px,
+      linear-gradient(currentColor 0 0) bottom / 100% 1.5px;
+    background-repeat: no-repeat;
+  }
+
+  /* Game Over: zoom into the CRT screen (origin = screen center) so the globe
+     fills the viewport, not the whole TV + dark room. */
+  .showcase--gameover { overflow: hidden; }
+  .signal-lost .tv-stage {
+    transform: scale(5.5);
+    transform-origin: 51% 49%;
+  }
+  /* Enlarge just the globe + "Signal lost" copy (not the whole zoom, which
+     would push the Panasonic off-screen). Overrides the inline cqh sizes. */
+  .signal-lost .crt > div:first-child { width: 95cqh !important; margin-top: -36cqh !important; }
+  .signal-lost .signal-glitch { font-size: 16cqh !important; }
+  /* Crash-dump block below "Signal lost" — bump to match. Container size feeds
+     the "reboot world?" + YES/NO lines; the FATAL block has its own size. */
+  .signal-lost .signal-glitch + div { font-size: 5.4cqh !important; }
+  .signal-lost .signal-glitch + div > div:first-child { font-size: 4.3cqh !important; }
+  /* The YES arrow is a fixed-cqh CSS triangle; scale it with the enlarged
+     text (×2.16) so it stays proportional and centered against the caps. */
+  .signal-lost .signal-yes > span:first-child {
+    border-top-width: 2.4cqh !important;
+    border-bottom-width: 2.4cqh !important;
+    border-left-width: 3.9cqh !important;
+    /* nudge up to the caps' optical centre (caps sit high in the 1.7 line-box) */
+    transform: translateY(-1.8cqh);
+  }
+  /* High-res globe so the corrupt shader matches desktop's fine grain instead
+     of pixel-mush. The CRT is CSS-scaled 6.5×, which would upscale the tiny
+     ~109px iframe buffer 4.3×. Instead we render the iframe LARGE (so the embed
+     produces a big buffer) and scale it back into the slot — the outer 6.5×
+     then has a high-res bitmap to work with. (Embed caps DPR at 1.5 on touch,
+     so we oversize the layout to compensate.) */
+  .signal-lost .crt .showcase-globe {
+    position: relative;
+    overflow: hidden;
+  }
+  .signal-lost .crt .showcase-globe iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 760cqh !important;
+    height: 760cqh !important;
+    transform: scale(0.125);
+    transform-origin: top left;
+  }
+  /* The CRT glass sits slightly left of the TV's horizontal center, so the
+     globe + "Signal lost" copy read left of the centered Panasonic badge.
+     Nudge the whole screen right (~1.7% of the TV) to line them all up.
+     Mobile-only: on desktop the CRT must stay aligned to the photo's glass. */
+  .signal-lost .crt {
+    left: calc(var(--crt-left, 27.4%) + 1.47%);
+  }
+
+  /* Keep long hero copy from running off the right edge on narrow screens. */
+  .showcase h1,
+  .showcase h2 {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+  /* Stripe mobile: a centered single-column hero (desktop keeps its
+     left-anchored split, untouched). Full-bleed the section (padding:0) so the
+     company nav's frosted bar + bottom hairline reach the screen edges and the
+     logo strip spans edge to edge; the nav-inner + copy keep their own insets.
+     Nav flush to the top, copy + countries + buttons centered, logos on a white
+     strip at the bottom. */
+  .showcase--stripe { overflow-x: clip; padding: 0; }
+  /* !important: the inner's bottom padding is an inline shorthand
+     (padding: 0 24px 34px), so a plain longhand wouldn't win — seat the logo
+     strip flush against the section bottom. */
+  .showcase--stripe .showcase-inner { padding-bottom: 0 !important; }
+  /* Drop the desktop copy transform (shoved the column right + up, ran the
+     headline off the edge) and center everything. */
+  .showcase--stripe .stripe-hero-copy {
+    transform: none !important;
+    max-width: 100% !important;
+    text-align: center;
+  }
+  .showcase--stripe .stripe-eyebrow { justify-content: center; }
+  .showcase--stripe h2 { font-size: clamp(22px, 6.2vw, 30px) !important; }
+  /* Buttons: stacked, equal width, centered. */
+  .showcase--stripe .showcase-ctas {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center !important;
+    width: 100%;
+  }
+  .showcase--stripe .showcase-cta {
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+  }
+  /* Customer logos: solid white strip flush to the section bottom (was a
+     transparent band floating over the globe). */
+  .showcase--stripe .stripe-logo-strip {
+    background: #fff;
+    position: relative;
+    z-index: 3;
+  }
+  /* Clean top-to-bottom veil over the globe: strong white behind the copy at
+     the top (keeps the centered text legible), easing down to reveal the globe
+     toward the bottom where the dots are densest, then into the white logo
+     strip. A single vertical flow instead of the old symmetric mid-band. */
+  .showcase--stripe .stripe-hero-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    /* A gentle cool-tinted veil that carries the whole way down over the globe
+       (instead of fading off and letting it poke through bare): top-to-bottom
+       flow, but never fully transparent, so the globe stays integrated under
+       the wash across the entire hero. */
+    background: linear-gradient(
+      180deg,
+      rgba(244, 244, 250, 0.68) 0%,
+      rgba(244, 244, 250, 0.58) 50%,
+      rgba(244, 244, 250, 0.46) 100%
+    );
+  }
+  /* The desktop washes are horizontal (90deg, tuned for the left-copy /
+     right-globe split) which reads weird on the centered phone layout. Drop
+     the globe-side wash and flip the other to a clean top-to-bottom gradient
+     spanning the full hero, so the tint flows vertically into the white logo
+     strip at the bottom. */
+  .showcase--stripe .stripe-wash-b { display: none; }
+  .showcase--stripe .stripe-wash-a {
+    top: 0 !important;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 42%,
+      rgba(255, 255, 255, 0.82) 100%
+    ) !important;
+  }
+
+  /* --- Vercel mobile --- */
+  /* Nav flush to the very top (full-bleed section, like Stripe). */
+  .showcase--vercel { padding: 0; }
+  /* Tiny black→transparent gradient under the nav so the blueprint grid fades
+     out cleanly behind it (black at the very top, gone by ~120px). */
+  .showcase--vercel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0) 100%);
+  }
+  /* Surface just the animated "Ask AI" link next to the hamburger on phones
+     (the rest of the nav-right stays collapsed). */
+  .showcase--vercel .showcase-nav-right {
+    display: inline-flex !important;
+    margin-left: auto;
+    gap: 0;
+  }
+  .showcase--vercel .showcase-nav-right > * { display: none; }
+  .showcase--vercel .showcase-nav-right > .ai-gradient {
+    display: inline-block;
+    font-size: 13px;
+  }
+  .showcase--vercel .showcase-nav-burger { margin-left: 13px; }
+  /* Push the gradient back so the (transparent) globe reads as the front
+     element: the colorful bg-wash + globe-glow show THROUGH the globe's dot
+     gaps, so calming them lets the planet sit forward. Glow pulled down behind
+     the globe as a low atmospheric base. */
+  .showcase--vercel .vercel-bg-wash { opacity: 0.26 !important; }
+  .showcase--vercel .vercel-globe-glow::after {
+    opacity: 0.5 !important;
+    /* Seat the glow LOW (below the globe's bright band) so it reads as a base
+       glow that bleeds up, instead of washing over the white dots. */
+    -webkit-mask-image: radial-gradient(ellipse 145% 42% at 50% 99%, #000 6%, transparent 78%) !important;
+    mask-image: radial-gradient(ellipse 145% 42% at 50% 99%, #000 6%, transparent 78%) !important;
+    /* Less zoom on the gradient so more of the blue→red spectrum spans the
+       bottom (not just green in the middle). */
+    background-size: 125% 100% !important;
+  }
+  /* Blueprint grid: keep the desktop 64px cell size (it was wrongly shrunk),
+     just make the lines read on the dark phone bg and widen the mask. Sits in
+     the back behind the globe. */
+  .showcase--vercel .vercel-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px) !important;
+    background-size: 64px 64px !important;
+    -webkit-mask-image: radial-gradient(ellipse 100% 58% at 50% 32%, #000 52%, transparent 90%) !important;
+    mask-image: radial-gradient(ellipse 100% 58% at 50% 32%, #000 52%, transparent 90%) !important;
+  }
+  /* Center the copy in the space between the nav and the globe band. Pin the
+     band to a fixed height at the bottom, then give the first copy element
+     (event pill) AND the band balancing `margin-top:auto` so the leftover space
+     splits evenly above + below the copy — vertically centering it. */
+  .showcase--vercel .showcase-inner {
+    padding-top: 10px !important;
+    gap: 13px !important;
+  }
+  /* Pin the globe band to the bottom as a background layer (55vh tall keeps its
+     dense band on screen, so it stays the bright FRONT element). Taking it out
+     of flow frees the copy to center in the whole area above the globe instead
+     of being crammed into the sliver above a tall flex band. */
+  .showcase--vercel .vercel-band {
+    position: absolute !important;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto !important;
+    height: 55vh;
+    min-height: 0 !important;
+    margin: 0 !important;
+    flex: none !important;
+  }
+  /* Nudge the globe down only slightly. KEEP it small (~25px): a big push drops
+     the dense band off the bottom and the globe goes sparse / "in the back". */
+  .showcase--vercel .vercel-globe-box { bottom: -845px !important; }
+  /* Copy floats above the globe and centers between the nav and where the globe
+     dots start (~54vh down). z-index keeps the text above the globe's faint
+     upper edge it overlaps. */
+  .showcase--vercel .vercel-copy {
+    position: absolute;
+    inset: 0 0 46vh 0;
+    z-index: 2;
+    justify-content: center;
+    /* Keep the headline + subhead off the screen edges on phones. */
+    padding-inline: 22px;
+  }
+  /* Shorter event copy on phones (full version hidden) + a roomier, less-tight
+     pill now that it has less to hold. First copy element also carries the
+     balancing margin-top:auto for the centering above. */
+  .showcase--vercel .vercel-evt-full { display: none; }
+  .showcase--vercel .vercel-evt-short { display: inline; }
+  .showcase--vercel .vercel-announce {
+    font-size: 12.5px !important;
+    gap: 6px !important;
+    padding: 4px 5px 4px 7px !important;
+    max-width: 100%;
+  }
+  .showcase--vercel .vercel-announce > .vercel-pill {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+  }
+}
