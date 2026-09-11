@@ -45,6 +45,12 @@ export const DashboardPage: React.FC = () => {
             <p style={{ color: '#6b7280' }}>Track inbound and outbound material transactions.</p>
           </div>
         </Link>
+        <Link to="/trucks-management" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <div style={{ border: '2px solid #7c3aed', padding: '1.5rem', borderRadius: '8px', cursor: 'pointer', background: '#fcfaff' }}>
+            <h3 style={{ color: '#7c3aed', margin: '0 0 0.5rem' }}>🚚 Trucks Management</h3>
+            <p style={{ color: '#6b7280', margin: 0 }}>Interactive trailer load planning, dispatcher activity & Gantt chart.</p>
+          </div>
+        </Link>
         <Link to="/logistics" style={{ textDecoration: 'none', color: 'inherit' }}>
           <div style={{ border: '1px solid #e5e7eb', padding: '1.5rem', borderRadius: '8px', cursor: 'pointer' }}>
             <h3>Logistics & Routing</h3>

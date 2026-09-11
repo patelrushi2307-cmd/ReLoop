@@ -16,6 +16,7 @@ import { MyListingsPage } from './pages/MyListingsPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailsPage } from './pages/OrderDetailsPage';
 import { LogisticsPage } from './pages/LogisticsPage';
+import { TrucksManagementPage } from './pages/TrucksManagementPage';
 import { ImpactDashboardPage } from './pages/ImpactDashboardPage';
 import { OrganizationPage } from './pages/OrganizationPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -79,6 +80,14 @@ export const App: React.FC = () => {
               element={
                 <RequireAuth>
                   <LogisticsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/trucks-management"
+              element={
+                <RequireAuth>
+                  <TrucksManagementPage />
                 </RequireAuth>
               }
             />
