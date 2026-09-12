@@ -155,30 +155,48 @@ export const features = {
   ],
 };
 
-export const materials = [
-  "Corrugated board",
-  "HDPE drums",
-  "LDPE film",
-  "Polypropylene",
-  "Euro pallets",
-  "Gaylords",
-  "IBC totes",
-  "Strapping",
-  "Stretch wrap",
-  "Corrugated board",
-  "HDPE drums",
-  "LDPE film",
-  "Polypropylene",
-  "Euro pallets",
-  "Gaylords",
-  "IBC totes",
-  "Strapping",
-  "Stretch wrap",
+/* The material taxonomy the API validates every listing and requirement
+   against — MATERIAL_TAXONOMY in the backend, served at /categories/taxonomy.
+   Five categories, thirteen subtypes. Nothing trades here unless the API
+   accepts its slug, so nothing is listed here that it would reject. */
+export const materialCategories = [
+  {
+    slug: "cardboard",
+    label: "Cardboard",
+    subtypes: [
+      "Corrugated cardboard",
+      "OCC (Old Corrugated Containers)",
+      "Die-cut boxes",
+    ],
+  },
+  {
+    slug: "plastics",
+    label: "Plastics",
+    subtypes: ["LDPE stretch film", "Strapping", "Rigid containers"],
+  },
+  {
+    slug: "pallets",
+    label: "Pallets",
+    subtypes: ["Wooden pallets", "Plastic pallets", "Euro pallets (EPAL)"],
+  },
+  {
+    slug: "drums",
+    label: "Drums",
+    subtypes: ["Steel drums", "Plastic drums"],
+  },
+  {
+    slug: "gaylords",
+    label: "Gaylords",
+    subtypes: ["Fibre gaylords", "Plastic gaylords"],
+  },
 ];
+
+/** Every tradable subtype, flattened — the preloader marquee reads this. */
+export const materials = materialCategories.flatMap((c) => c.subtypes);
 
 export const materialsSection = {
   eyebrow: "Materials",
-  heading: ["Nine classes", "move through the exchange."],
+  heading: ["Five classes,", "thirteen subtypes."],
   copy: "Each class carries its own emission factor, so each one has its own break-even radius. A stack of euro pallets and a roll of stretch film do not travel the same distance before the trade stops paying for itself.",
 };
 
@@ -188,4 +206,44 @@ export const contact = {
   copy: "Sellers list surplus where it stands and let the grading model do the paperwork. Buyers set a standing requirement and the matching engine ranks what clears the carbon check.",
   /* Rendered only when set — an address is yours to supply, not ours to invent. */
   email: "",
+};
+
+/* Footer navigation. Every href is either a section id this page carries or
+   a route the app actually serves — nothing aspirational. */
+export const footer = {
+  columns: [
+    {
+      title: "Explore",
+      links: [
+        { label: "Method", href: "#method" },
+        { label: "By the numbers", href: "#numbers" },
+        { label: "Terminal", href: "#terminal" },
+        { label: "How it works", href: "#services" },
+        { label: "Materials", href: "#materials" },
+        { label: "For carriers", href: "#haulage" },
+        { label: "Platform", href: "#platform" },
+      ],
+    },
+    {
+      title: "Platform",
+      links: [
+        { label: "Dashboard", href: "/dashboard" },
+        { label: "Listings", href: "/dashboard/listings" },
+        { label: "Requirements", href: "/dashboard/requirements" },
+        { label: "Trades", href: "/dashboard/trades" },
+        { label: "Impact", href: "/dashboard/impact" },
+      ],
+    },
+    {
+      title: "Account",
+      links: [
+        { label: "Sign in", href: "/login" },
+        { label: "Create account", href: "/register" },
+        { label: "Sell item", href: "/dashboard?mode=sell" },
+        { label: "Buy item", href: "/dashboard?mode=buy" },
+      ],
+    },
+  ],
+  /* States how the numbers are produced; it does not claim a result. */
+  note: "Emission factors are versioned and source-cited. Every listing records the factor version used to compute its break-even radius.",
 };

@@ -144,7 +144,7 @@ export function StageTruck() {
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-10 md:px-8 md:pt-14">
         <div className="flex items-center gap-3">
-          <span className="eyebrow tnum">05</span>
+          <span className="eyebrow tnum">06</span>
           <span className="eyebrow">{stageTruck.eyebrow}</span>
         </div>
 

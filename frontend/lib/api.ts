@@ -279,3 +279,33 @@ export type Category = {
   description?: string;
   subcategories?: string[];
 };
+
+/**
+ * One ranked recommendation from the matching engine.
+ *
+ * The engine hard-filters on category, grade floor, haul distance and the
+ * carbon check (a lot past its break-even radius is suppressed entirely),
+ * then scores what survives. Weights are fixed server-side:
+ * semantic 25%, grade 20%, price 15%, carbon 30%, timing 10%.
+ */
+export type MatchResult = {
+  score: number;
+  subscores: {
+    semanticFit: number;
+    gradeFit: number;
+    priceFit: number;
+    carbonScore: number;
+    timingFit: number;
+  };
+  carbonMetrics: {
+    grossAvoidedKg: number;
+    reprocessKg: number;
+    transportEmissionsKg: number;
+    netSavedKg: number;
+    breakEvenRadiusKm: number;
+    classification: string;
+  };
+  distanceKm: number;
+  /** Unlike /listings, this endpoint populates the seller organisation. */
+  listing: Listing & { organizationId?: string | OrgRef };
+};
