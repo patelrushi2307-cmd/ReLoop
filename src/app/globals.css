@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    --color-emerald-primary: #10b981;
+    --color-emerald-dark: #059669;
+    --color-slate-bg: #0f172a;
+    --color-slate-surface: #1e293b;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-white text-slate-900 font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-emerald-500/30 text-emerald-900;
+  }
+}
+
+@layer components {
+  /* Glassmorphism utilities */
+  .glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-glass;
+  }
+
+  .glass-dark {
+    @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-glass;
+  }
+
+  .glass-emerald {
+    @apply bg-emerald-900/20 backdrop-blur-xl border border-emerald-500/20;
+  }
+
+  /* Card styles */
+  .card-hover {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-card-hover;
+  }
+
+  /* Text gradients */
+  .text-gradient-emerald {
+    @apply bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-slate {
+    @apply bg-gradient-to-r from-slate-200 to-slate-400 bg-clip-text text-transparent;
+  }
+
+  /* Badge styles */
+  .badge-carbon {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold 
+           bg-emerald-50 text-emerald-700 border border-emerald-200;
+  }
+
+  .badge-ai {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold 
+           bg-blue-50 text-blue-700 border border-blue-200;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl 
+           bg-emerald-600 text-white font-semibold text-sm
+           hover:bg-emerald-700 active:bg-emerald-800
+           transition-all duration-200 ease-out
+           shadow-sm hover:shadow-emerald-glow
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl 
+           bg-transparent text-emerald-600 font-semibold text-sm
+           border-2 border-emerald-600
+           hover:bg-emerald-50 active:bg-emerald-100
+           transition-all duration-200 ease-out
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl 
+           bg-transparent text-slate-600 font-medium text-sm
+           hover:bg-slate-100 active:bg-slate-200
+           transition-all duration-200 ease-out;
+  }
+
+  /* Input styles */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200
+           text-slate-900 placeholder:text-slate-400
+           focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500
+           transition-all duration-200;
+  }
+
+  /* Scrollbar */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.300') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: theme('colors.slate.300');
+    border-radius: 3px;
+  }
+
+  /* 3D canvas container */
+  .canvas-container {
+    @apply relative w-full overflow-hidden;
+    touch-action: none;
+  }
+
+  /* Animated counter */
+  .counter-value {
+    @apply font-display font-bold tabular-nums;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Carbon saver ribbon */
+  .ribbon-carbon {
+    @apply absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider
+           bg-emerald-500 text-white shadow-sm;
+  }
+}
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+}
