@@ -123,7 +123,7 @@ export function Nav() {
                 {brand.hq.lines.join(" · ")}
               </div>
               <div className="eyebrow !text-[var(--grey-600)]">
-                Nine material classes traded
+                Five material classes traded
               </div>
             </motion.div>
           </motion.div>

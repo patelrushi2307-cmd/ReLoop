@@ -12,6 +12,7 @@ import {
   secondaryButton,
   smallButton,
 } from "@/components/dashboard/DashboardShell";
+import { RequirementMatches } from "@/components/dashboard/RequirementMatches";
 import {
   ApiError,
   api,
@@ -41,6 +42,8 @@ export default function RequirementsPage() {
   const [fields, setFields] = useState<Record<string, string>>({});
   /* Empty means every category. */
   const [category, setCategory] = useState(ALL_CATEGORIES);
+  /* Requirement whose recommended lots are expanded, if any. */
+  const [matchesFor, setMatchesFor] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     facilityId: "",
@@ -323,10 +326,8 @@ export default function RequirementsPage() {
         ) : (
           <ul className="border-t border-[var(--line)]">
             {items.map((req, i) => (
-              <li
-                key={req._id}
-                className="grid gap-6 border-b border-[var(--line)] py-6 md:grid-cols-12 md:items-center"
-              >
+              <li key={req._id} className="border-b border-[var(--line)]">
+                <div className="grid gap-6 py-6 md:grid-cols-12 md:items-center">
                 <div className="md:col-span-4">
                   <div className="flex items-center gap-3">
                     <span className="eyebrow tnum">
@@ -408,7 +409,24 @@ export default function RequirementsPage() {
                       Close
                     </button>
                   )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMatchesFor((id) => (id === req._id ? null : req._id))
+                    }
+                    className={`${smallButton} !border-[var(--fg)]`}
+                  >
+                    {matchesFor === req._id ? "Hide matches" : "Find matches"}
+                  </button>
                 </div>
+                </div>
+
+                {matchesFor === req._id && (
+                  <RequirementMatches
+                    requirementId={req._id}
+                    onClose={() => setMatchesFor(null)}
+                  />
+                )}
               </li>
             ))}
           </ul>

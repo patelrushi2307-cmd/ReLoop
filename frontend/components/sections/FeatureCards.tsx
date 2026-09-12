@@ -43,7 +43,7 @@ export function FeatureCards() {
       className="scroll-mt-24 border-t border-[var(--line)] px-4 py-20 md:px-8 md:py-28"
     >
       <div className="mb-6 flex items-center gap-3">
-        <span className="eyebrow tnum">06</span>
+        <span className="eyebrow tnum">07</span>
         <span className="eyebrow">{features.eyebrow}</span>
       </div>
 
