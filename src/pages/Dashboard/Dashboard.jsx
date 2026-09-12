@@ -281,10 +281,10 @@ export default function Dashboard() {
             </div>
 
             <Link
-              to="/network"
+              to="/logistics"
               className="w-full py-2.5 bg-black hover:bg-neutral-800 text-white rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
-              <span>Explore Interactive 3D Network</span>
+              <span>Explore Logistics Hub</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>

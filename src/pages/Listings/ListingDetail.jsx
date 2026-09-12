@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import MaterialPassport3D from '../../components/visuals/MaterialPassport3D';
+import RequestQuoteModal from '../../components/RequestQuoteModal';
 import {
   ArrowLeft,
   ShieldCheck,
@@ -16,15 +17,43 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  Heart,
+  ShoppingCart,
+  Zap,
+  MessageSquare,
+  Building2,
+  Package,
 } from 'lucide-react';
 
 export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { listings, org, facilities, trades, setTrades } = useApp();
+  const {
+    listings,
+    org,
+    facilities,
+    matches,
+    shortlist,
+    addToShortlist,
+    removeFromShortlist,
+    isInShortlist,
+  } = useApp();
 
   // Find listing or fallback
   const listing = listings.find((l) => l.id === id) || listings[0];
+  const relatedMatch = matches?.find((m) => m.listingId === listing.id);
+
+  // E-commerce purchase state
+  const [procureQty, setProcureQty] = useState(listing.mass_kg || 10000);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
+  const [destinationFacility, setDestinationFacility] = useState(
+    facilities[0]?.name || 'Rotterdam Circular Hub (HQ)'
+  );
+
+  // Calculated dynamic values
+  const calculatedSubtotal = Math.round(procureQty * (listing.price_per_kg || 1));
+  const calculatedCo2 = Math.round(procureQty * 1.34);
+  const isSaved = isInShortlist(listing.id);
 
   // "What if?" Carbon Estimator state
   const [selectedFacilityId, setSelectedFacilityId] = useState(facilities[0]?.id || 1);
@@ -84,10 +113,10 @@ export default function ListingDetail() {
       {/* Top Breadcrumb */}
       <div>
         <button
-          onClick={() => navigate('/listings')}
+          onClick={() => navigate(-1)}
           className="text-xs font-semibold text-gray-500 hover:text-black flex items-center gap-1 mb-2 transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Listings Browse
+          <ArrowLeft className="w-3.5 h-3.5" /> Back
         </button>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -113,16 +142,43 @@ export default function ListingDetail() {
         </div>
       </div>
 
+      {/* Recommended Match Fit Banner (Shown if this listing was matched/recommended) */}
+      {relatedMatch && (
+        <div className="bg-purple-50/80 border border-purple-200/80 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1 rounded-full bg-[#7201FF] text-white font-extrabold text-xs flex items-center gap-1.5 shadow-2xs flex-shrink-0">
+              <Sparkles className="w-3.5 h-3.5" />
+              {relatedMatch.composite_score}% AI Match Fit
+            </span>
+            <div>
+              <span className="text-black font-extrabold text-xs block">
+                Algorithmic Match Recommendation
+              </span>
+              <span className="text-gray-600 font-medium text-[11.5px]">
+                {relatedMatch.reasonText}
+              </span>
+            </div>
+          </div>
+          <Link
+            to={`/matches/${relatedMatch.id}`}
+            className="px-3.5 py-1.5 rounded-full bg-white hover:bg-gray-100 border border-purple-200 text-[#7201FF] font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs ml-auto flex-shrink-0"
+          >
+            <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+            <span>View Full Carbon Audit</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
       {/* Main Grid: 3D Material Passport on Left + Action/Specs on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left Column (7 Cols): Material Passport 3D + "What if?" Carbon Estimator */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           
-          {/* 3D Material Passport Surface */}
+          {/* Material Specimen Photo Gallery */}
           <MaterialPassport3D
             materialType={listing.materialType}
-            hotspots={listing.hotspots}
             photos={listing.photos}
           />
 
@@ -244,13 +300,13 @@ export default function ListingDetail() {
                   Unit Price
                 </span>
                 <span className="text-2xl font-black text-black font-mono">
-                  €{listing.price_per_kg.toFixed(2)}
+                  €{listing.price_per_kg?.toFixed(2)}
                   <span className="text-xs text-gray-500 font-sans font-normal"> / kg</span>
                 </span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">
-                  Total Lot Value
+                  Lot Total Value
                 </span>
                 <span className="text-lg font-extrabold text-black font-mono">
                   €{totalLotValue.toLocaleString()}
@@ -258,7 +314,7 @@ export default function ListingDetail() {
               </div>
             </div>
 
-            {/* Auction Bidding Widget OR Static Claim CTA */}
+            {/* Auction Bidding Widget OR B2B Purchase Action Panel */}
             {listing.isAuction ? (
               /* Live Bidding Widget */
               <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-200 flex flex-col gap-3 mt-1">
@@ -288,7 +344,7 @@ export default function ListingDetail() {
                   />
                   <button
                     onClick={handlePlaceBid}
-                    className="flex-1 py-2 bg-[#7201FF] hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs"
+                    className="flex-1 py-2 bg-[#7201FF] hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors shadow-xs cursor-pointer"
                   >
                     Place Live Bid
                   </button>
@@ -305,43 +361,122 @@ export default function ListingDetail() {
                 </div>
               </div>
             ) : (
-              /* Static Claim & Counter Actions */
-              <div className="flex flex-col gap-2.5 mt-2">
-                {isClaimBlocked ? (
-                  /* Gated Claim Alert */
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 flex flex-col gap-1.5">
-                    <span className="font-bold flex items-center gap-1.5 text-amber-950">
-                      <ShieldAlert className="w-4 h-4 text-amber-600" />
-                      Claiming Limited: High-Value Lot (€{totalLotValue.toLocaleString()})
+              /* B2B Commercial Purchase Panel */
+              <div className="flex flex-col gap-3.5 mt-2 bg-white rounded-2xl border border-gray-100 p-3">
+                
+                {/* Quantity Selector */}
+                <div>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <label className="font-bold text-gray-700">Procurement Quantity:</label>
+                    <span className="font-mono font-bold text-black text-sm">
+                      {Number(procureQty).toLocaleString()} kg
                     </span>
-                    <p className="text-[11.5px] leading-tight text-amber-800">
-                      Your organisation is currently unverified. Unverified accounts cannot claim trades exceeding €{org.verificationThreshold.toLocaleString()}.
-                    </p>
-                    <Link
-                      to="/settings/organisation"
-                      className="text-xs font-bold text-amber-900 underline hover:text-black mt-1"
-                    >
-                      Submit Verification Documents →
-                    </Link>
                   </div>
-                ) : (
-                  <button
-                    onClick={handleClaim}
-                    className="w-full py-3 bg-[#7201FF] hover:bg-purple-700 text-white rounded-full text-xs font-bold transition-colors shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  <input
+                    type="range"
+                    min="500"
+                    max={listing.mass_kg}
+                    step="500"
+                    value={procureQty}
+                    onChange={(e) => setProcureQty(Number(e.target.value))}
+                    className="w-full accent-black cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-gray-400 font-mono mt-0.5">
+                    <span>Min: 500 kg</span>
+                    <span>Max: {listing.mass_kg?.toLocaleString()} kg</span>
+                  </div>
+                </div>
+
+                {/* Receiving Facility Picker */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                    Receiving Facility (Buyer)
+                  </label>
+                  <select
+                    value={destinationFacility}
+                    onChange={(e) => setDestinationFacility(e.target.value)}
+                    className="w-full p-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-black focus:outline-hidden focus:border-[#7201FF]"
                   >
-                    <span>Claim Lot &amp; Initiate Escrow Trade</span>
+                    {facilities.map((fac) => (
+                      <option key={fac.id} value={fac.name}>
+                        {fac.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Dynamic Subtotal & ESG Preview */}
+                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-gray-400 block">
+                      Calculated Batch Subtotal
+                    </span>
+                    <span className="text-xl font-black font-mono text-black">
+                      €{calculatedSubtotal.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-500 block">Avoided Scope 3</span>
+                    <span className="text-xs font-black font-mono text-emerald-700">
+                      -{calculatedCo2.toLocaleString()} kg CO₂e
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-2 pt-1">
+                  
+                  {/* Primary CTA 1: Buy Now */}
+                  <button
+                    onClick={() => navigate(`/checkout/${listing.id}?qty=${procureQty}`)}
+                    className="w-full py-3 bg-black hover:bg-neutral-800 text-white rounded-full text-xs font-extrabold transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer hover:scale-101"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-[#8FFE01]" />
+                    <span>⚡ Buy Now / Proceed to Checkout</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
-                )}
 
-                {listing.openToOffers && (
+                  {/* Primary CTA 2: Negotiate / Request Quote (If openToOffers) */}
+                  {listing.openToOffers && (
+                    <button
+                      onClick={() => setShowQuoteModal(true)}
+                      className="w-full py-2.5 bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7201FF] rounded-full text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>💬 Negotiate / Request Quote</span>
+                    </button>
+                  )}
+
+                  {/* Secondary CTA: Shortlist Toggle */}
                   <button
-                    onClick={() => alert('Counter-offer dialogue opened with seller.')}
-                    className="w-full py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-black rounded-full text-xs font-semibold transition-colors"
+                    onClick={() => {
+                      if (isSaved) {
+                        removeFromShortlist(listing.id);
+                      } else {
+                        addToShortlist(listing.id, procureQty);
+                      }
+                    }}
+                    className={`w-full py-2 border rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      isSaved
+                        ? 'border-rose-200 bg-rose-50 text-rose-600'
+                        : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-700'
+                    }`}
                   >
-                    Submit Counter-Offer
+                    <Heart className={`w-3.5 h-3.5 ${isSaved ? 'fill-current' : ''}`} />
+                    <span>{isSaved ? '✓ Saved in Shortlist' : 'Add to Shortlist Cart'}</span>
                   </button>
-                )}
+
+                </div>
+
+                {/* Seller Trust Footer */}
+                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Smart Escrow Protected</span>
+                  </div>
+                  <span>Response: &lt; 2 hours</span>
+                </div>
+
               </div>
             )}
 
@@ -350,6 +485,16 @@ export default function ListingDetail() {
         </div>
 
       </div>
+
+      {/* Real Quote / Negotiation Modal */}
+      {showQuoteModal && (
+        <RequestQuoteModal
+          listing={listing}
+          initialQty={procureQty}
+          isOpen={showQuoteModal}
+          onClose={() => setShowQuoteModal(false)}
+        />
+      )}
 
     </div>
   );

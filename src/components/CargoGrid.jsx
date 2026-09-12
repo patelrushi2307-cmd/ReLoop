@@ -1,27 +1,27 @@
 import React from 'react';
+import { useApp } from '../context/AppContext';
 import CargoCell from './CargoCell';
 
 export default function CargoGrid() {
-  const cells = [
-    // Row 1
-    { id: 1, label: 'B2R' },
-    { id: 2, label: 'B2R' },
-    { id: 3, label: 'B2R' },
-    { id: 4, label: 'B2R' },
+  const { matches } = useApp();
 
-    // Row 2
-    { id: 5, label: 'B2R' },
-    { id: 6, label: 'B2R' },
-    { id: 7, label: 'B2R' },
-    { id: 8, label: 'B2R' },
-  ];
+  // Sort by composite score descending and take top 8
+  const top8 = [...matches]
+    .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
+    .slice(0, 8);
 
   return (
     <div className="grid grid-cols-4 grid-rows-2 gap-2 w-full h-full p-1.5 box-border">
-      {cells.map((cell) => (
-        <CargoCell key={cell.id} label={cell.label} />
+      {top8.map((m) => (
+        <CargoCell
+          key={m.id}
+          listingId={m.listingId}
+          label={m.material || m.code || 'Secondary Lot'}
+          matchScore={m.composite_score}
+        />
       ))}
     </div>
   );
 }
+
 

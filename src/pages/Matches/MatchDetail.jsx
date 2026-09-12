@@ -71,7 +71,14 @@ export default function MatchDetail() {
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <Link
+              to={`/listings/${match.listingId || 'L-101'}`}
+              className="px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <span>View Material Passport</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
             <div className="text-right">
               <span className="text-[10px] text-gray-500 block font-bold uppercase">Composite Fit</span>
               <span className="text-2xl font-black font-mono text-black">{match.composite_score} / 100</span>

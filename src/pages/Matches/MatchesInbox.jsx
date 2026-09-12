@@ -34,9 +34,6 @@ export default function MatchesInbox() {
               <Sparkles className="w-3.5 h-3.5" /> Autonomous Engine
             </span>
           </div>
-          <p className="text-xs text-gray-700 font-medium mt-0.5">
-            Algorithmic pairings optimized for LCA carbon savings, polymer grade compatibility, and logistics efficiency
-          </p>
         </div>
       </div>
 
@@ -45,7 +42,7 @@ export default function MatchesInbox() {
         {matches.map((match) => (
           <div
             key={match.id}
-            onClick={() => navigate(`/matches/${match.id}`)}
+            onClick={() => navigate(`/listings/${match.listingId || match.id}`)}
             className="bg-white rounded-3xl p-6 border border-gray-200/80 shadow-xs hover:border-[#7201FF] hover:shadow-card transition-all cursor-pointer flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 group select-none"
           >
             {/* Left: Score Badge + Details */}
@@ -97,9 +94,19 @@ export default function MatchesInbox() {
 
               <Link
                 to={`/matches/${match.id}`}
+                onClick={(e) => e.stopPropagation()}
+                title="View full LCA carbon accounting breakdown"
+                className="px-3.5 py-2 rounded-full border border-gray-200 text-xs font-semibold text-gray-600 hover:text-black hover:border-gray-400 hover:bg-gray-50 transition-colors flex items-center gap-1"
+              >
+                <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Carbon Audit</span>
+              </Link>
+
+              <Link
+                to={`/listings/${match.listingId || match.id}`}
                 className="px-5 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-all flex items-center gap-1.5 shadow-xs"
               >
-                <span>View Carbon Breakdown</span>
+                <span>View Details</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

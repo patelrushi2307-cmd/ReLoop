@@ -19,6 +19,9 @@ export function AppProvider({ children }) {
     primaryFacilityId: 1,
   });
 
+  // Auth Status State
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   // Facilities
   const [facilities, setFacilities] = useState([
     {
@@ -201,6 +204,102 @@ export function AppProvider({ children }) {
         { id: 'h4', region: 'base_left', type: 'High Ash Contaminant (4.2%)', severity: 'high', x: -0.3, y: -0.5, z: 0.2 },
       ],
     },
+    {
+      id: 'L-105',
+      title: 'Baled OCC Corrugated Cardboard (Export Grade)',
+      materialType: 'Cardboard',
+      subType: 'OCC 11 Industrial Bales',
+      grade: 'Grade A',
+      gradeSource: 'AI (Confidence 95%)',
+      mass_kg: 22000,
+      price_per_kg: 0.24,
+      currency: '€',
+      carbon_class: 'carbon_positive',
+      net_co2e_saved_kg: 18400,
+      distance_km: 35,
+      breakeven_radius_km: 290,
+      facilityName: 'Rotterdam Circular Hub',
+      sellerOrg: 'BioPolymer Labs Europe',
+      isVerified: true,
+      openToOffers: true,
+      isAuction: false,
+      photos: [
+        'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=600&auto=format&fit=crop&q=80',
+      ],
+      hotspots: [],
+    },
+    {
+      id: 'L-106',
+      title: 'Heat-Treated Standard EPAL Euro Pallets',
+      materialType: 'Pallets',
+      subType: 'EPAL-1 1200x800mm Treated',
+      grade: 'Grade A+',
+      gradeSource: 'AI (Confidence 97%)',
+      mass_kg: 11250,
+      price_per_kg: 0.34,
+      currency: '€',
+      carbon_class: 'carbon_positive',
+      net_co2e_saved_kg: 14600,
+      distance_km: 55,
+      breakeven_radius_km: 380,
+      facilityName: 'Antwerp Depot',
+      sellerOrg: 'Nordic Circular Materials',
+      isVerified: true,
+      openToOffers: false,
+      isAuction: false,
+      photos: [
+        'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?w=600&auto=format&fit=crop&q=80',
+      ],
+      hotspots: [],
+    },
+    {
+      id: 'L-107',
+      title: 'Reconditioned 200L Steel Tight-Head Drums',
+      materialType: 'Steel Drums',
+      subType: 'UN-Certified 200L Tight Head',
+      grade: 'Grade A',
+      gradeSource: 'AI (Confidence 93%)',
+      mass_kg: 9200,
+      price_per_kg: 0.48,
+      currency: '€',
+      carbon_class: 'carbon_positive',
+      net_co2e_saved_kg: 8900,
+      distance_km: 68,
+      breakeven_radius_km: 260,
+      facilityName: 'Ghent Industrial Park',
+      sellerOrg: 'Ghent Circular Solvents',
+      isVerified: true,
+      openToOffers: true,
+      isAuction: false,
+      photos: [
+        'https://images.unsplash.com/photo-1605600659908-0ef719419d41?w=600&auto=format&fit=crop&q=80',
+      ],
+      hotspots: [],
+    },
+    {
+      id: 'L-108',
+      title: 'Heavy-Duty 4-Wall Corrugated Gaylord Boxes',
+      materialType: 'Gaylords',
+      subType: 'Triple-Wall Octagonal Bulk Box',
+      grade: 'Grade A',
+      gradeSource: 'AI (Confidence 94%)',
+      mass_kg: 6400,
+      price_per_kg: 0.72,
+      currency: '€',
+      carbon_class: 'carbon_positive',
+      net_co2e_saved_kg: 7100,
+      distance_km: 82,
+      breakeven_radius_km: 210,
+      facilityName: 'Duisburg Platform',
+      sellerOrg: 'Rheinland Recovery GmbH',
+      isVerified: true,
+      openToOffers: true,
+      isAuction: false,
+      photos: [
+        'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=600&auto=format&fit=crop&q=80',
+      ],
+      hotspots: [],
+    },
   ]);
 
   // Requirements Collection
@@ -238,23 +337,24 @@ export function AppProvider({ children }) {
     },
   ]);
 
-  // Ranked Matches
+  // Ranked Matches (Top 8 for logged-in org)
   const [matches, setMatches] = useState([
     {
       id: 'm-101',
       listingId: 'L-101',
       title: 'rHDPE Regrind Grade A ↔ Rotterdam Processing',
-      material: 'rHDPE',
+      material: 'rHDPE Flakes',
+      code: 'rHDPE',
       distance_km: 42,
       carbon_class: 'carbon_positive',
-      composite_score: 94,
+      composite_score: 96,
       reasonText: 'Exceptional geographic proximity (<50km) and exact melt flow index match with zero moisture penalty.',
       breakdown: {
         semantic_similarity: 96,
         grade_fit: 98,
-        price_fit: 91,
-        carbon_score: 95,
-        timing_fit: 90,
+        price_fit: 94,
+        carbon_score: 97,
+        timing_fit: 92,
         gross_avoided_kg: 32000,
         reprocess_kg: 5200,
         transport_kg: 2000,
@@ -268,23 +368,174 @@ export function AppProvider({ children }) {
       id: 'm-102',
       listingId: 'L-102',
       title: 'Clear rPET Washed Flakes ↔ Antwerp Bottle Extruder',
-      material: 'rPET',
+      material: 'rPET Washed',
+      code: 'rPET',
       distance_km: 78,
       carbon_class: 'carbon_positive',
-      composite_score: 89,
+      composite_score: 94,
       reasonText: 'Direct rail corridor alignment gives high net CO₂e savings despite slight grade premium.',
       breakdown: {
         semantic_similarity: 92,
-        grade_fit: 95,
-        price_fit: 82,
-        carbon_score: 94,
-        timing_fit: 85,
+        grade_fit: 96,
+        price_fit: 91,
+        carbon_score: 95,
+        timing_fit: 88,
         gross_avoided_kg: 48000,
         reprocess_kg: 6000,
         transport_kg: 2500,
         net_saved_kg: 39500,
         breakeven_radius_km: 450,
         assumed_load_factor: 92,
+        factor_version: 'v2.4-GHG-Protocol',
+      },
+    },
+    {
+      id: 'm-103',
+      listingId: 'L-105',
+      title: 'Baled OCC Corrugate ↔ Paperboard Packaging',
+      material: 'OCC Bales',
+      code: 'OCC',
+      distance_km: 35,
+      carbon_class: 'carbon_positive',
+      composite_score: 92,
+      reasonText: 'Local pickup with zero backhaul penalty, directly satisfying quarterly fiber packaging requirements.',
+      breakdown: {
+        semantic_similarity: 94,
+        grade_fit: 95,
+        price_fit: 93,
+        carbon_score: 91,
+        timing_fit: 90,
+        gross_avoided_kg: 24000,
+        reprocess_kg: 3600,
+        transport_kg: 2000,
+        net_saved_kg: 18400,
+        breakeven_radius_km: 290,
+        assumed_load_factor: 90,
+        factor_version: 'v2.4-GHG-Protocol',
+      },
+    },
+    {
+      id: 'm-104',
+      listingId: 'L-106',
+      title: 'Standard EPAL Pallets ↔ Regional Logistics Hub',
+      material: 'Euro Pallets',
+      code: 'Pallets',
+      distance_km: 55,
+      carbon_class: 'carbon_positive',
+      composite_score: 89,
+      reasonText: 'Certified heat-treated EPAL specification with high reuse cycle lifespan.',
+      breakdown: {
+        semantic_similarity: 91,
+        grade_fit: 97,
+        price_fit: 88,
+        carbon_score: 87,
+        timing_fit: 86,
+        gross_avoided_kg: 19000,
+        reprocess_kg: 2200,
+        transport_kg: 2200,
+        net_saved_kg: 14600,
+        breakeven_radius_km: 380,
+        assumed_load_factor: 85,
+        factor_version: 'v2.4-GHG-Protocol',
+      },
+    },
+    {
+      id: 'm-105',
+      listingId: 'L-103',
+      title: 'Clean Industrial LDPE Stretch ↔ Film Recycler',
+      material: 'LDPE Film',
+      code: 'rLDPE',
+      distance_km: 145,
+      carbon_class: 'marginal',
+      composite_score: 87,
+      reasonText: 'High transparency film bales with minimal color contamination; acceptable transport radius.',
+      breakdown: {
+        semantic_similarity: 88,
+        grade_fit: 89,
+        price_fit: 90,
+        carbon_score: 85,
+        timing_fit: 84,
+        gross_avoided_kg: 14000,
+        reprocess_kg: 2800,
+        transport_kg: 2000,
+        net_saved_kg: 9200,
+        breakeven_radius_km: 190,
+        assumed_load_factor: 84,
+        factor_version: 'v2.4-GHG-Protocol',
+      },
+    },
+    {
+      id: 'm-106',
+      listingId: 'L-107',
+      title: 'Reconditioned Steel Drums ↔ Chemical Industrial',
+      material: 'Steel Drums',
+      code: 'Drums',
+      distance_km: 68,
+      carbon_class: 'carbon_positive',
+      composite_score: 84,
+      reasonText: 'UN-certified tight head containers ready for closed-loop industrial refilling.',
+      breakdown: {
+        semantic_similarity: 86,
+        grade_fit: 91,
+        price_fit: 82,
+        carbon_score: 84,
+        timing_fit: 83,
+        gross_avoided_kg: 12000,
+        reprocess_kg: 1500,
+        transport_kg: 1600,
+        net_saved_kg: 8900,
+        breakeven_radius_km: 260,
+        assumed_load_factor: 82,
+        factor_version: 'v2.4-GHG-Protocol',
+      },
+    },
+    {
+      id: 'm-107',
+      listingId: 'L-108',
+      title: 'Triple-Wall Gaylords ↔ Automotive Parts Sourcing',
+      material: 'Gaylord Boxes',
+      code: 'Gaylords',
+      distance_km: 82,
+      carbon_class: 'carbon_positive',
+      composite_score: 82,
+      reasonText: 'Structural integrity intact for heavy bulk part storage, displacing virgin fiber manufacturing.',
+      breakdown: {
+        semantic_similarity: 85,
+        grade_fit: 89,
+        price_fit: 84,
+        carbon_score: 80,
+        timing_fit: 80,
+        gross_avoided_kg: 10000,
+        reprocess_kg: 1300,
+        transport_kg: 1600,
+        net_saved_kg: 7100,
+        breakeven_radius_km: 210,
+        assumed_load_factor: 80,
+        factor_version: 'v2.4-GHG-Protocol',
+      },
+    },
+    {
+      id: 'm-108',
+      listingId: 'L-104',
+      title: 'Mixed Polypropylene Regrind ↔ Non-Structural Molding',
+      material: 'PP Regrind',
+      code: 'rPP',
+      distance_km: 390,
+      carbon_class: 'carbon_negative',
+      composite_score: 79,
+      reasonText: 'Feedstock compatible with dark utility products; haulage exceeds optimal break-even threshold.',
+      breakdown: {
+        semantic_similarity: 78,
+        grade_fit: 75,
+        price_fit: 92,
+        carbon_score: 78,
+        timing_fit: 76,
+        gross_avoided_kg: 8000,
+        reprocess_kg: 4400,
+        transport_kg: 5000,
+        net_saved_kg: -1400,
+        breakeven_radius_km: 85,
+        assumed_load_factor: 75,
         factor_version: 'v2.4-GHG-Protocol',
       },
     },
@@ -458,6 +709,285 @@ export function AppProvider({ children }) {
     { id: 'EF-04', material: 'rPP Dark', efVirgin: 1.98, efReprocess: 0.45, source: 'FEVE & PlasticsEurope', version: 'v2.2', updatedAt: '2026-06-18' },
   ]);
 
+  // Shortlist / Multi-Lot Cart State
+  const [shortlist, setShortlist] = useState([
+    {
+      listingId: 'L-101',
+      qty_kg: 10000,
+      addedAt: '2026-09-12T08:30:00Z',
+    },
+    {
+      listingId: 'L-103',
+      qty_kg: 8000,
+      addedAt: '2026-09-12T09:15:00Z',
+    },
+  ]);
+
+  // B2B Order Requests & Quotes State
+  const [orderRequests, setOrderRequests] = useState([
+    {
+      id: 'REQ-ORD-901',
+      type: 'buy_now', // 'buy_now' | 'quote_request'
+      listingId: 'L-101',
+      listingTitle: 'Clean Post-Industrial rHDPE Regrind (Grade A)',
+      buyerOrg: 'Nordic Packaging NV',
+      buyerContact: 'Lukas Van Der Meer (Procurement Director)',
+      buyerVerified: true,
+      sellerOrg: 'BioPolymer Labs Europe',
+      requestedQty_kg: 14000,
+      offeredPricePerKg: 1.12,
+      totalValue: 15680,
+      deliveryFacility: 'Antwerp Port Circular Terminal',
+      pickupFacility: 'Rotterdam Circular Hub',
+      preferredPickup: '2026-09-22',
+      logisticsType: 'platform',
+      notes: 'Need batch certificate with ASTM D1238 melt flow indexing before pickup.',
+      status: 'pending', // 'pending' | 'accepted' | 'declined' | 'countered' | 'cancelled'
+      counterOffer: null,
+      createdAt: '2026-09-12T14:20:00Z',
+    },
+    {
+      id: 'REQ-ORD-882',
+      type: 'quote_request',
+      listingId: 'L-103',
+      listingTitle: 'Clean Industrial LDPE Stretch Film Bales',
+      buyerOrg: 'BioPolymer Labs Europe',
+      buyerContact: 'Marcus Vance',
+      buyerVerified: true,
+      sellerOrg: 'Rheinland Recovery GmbH',
+      requestedQty_kg: 10000,
+      offeredPricePerKg: 0.70,
+      totalValue: 7000,
+      deliveryFacility: 'Rotterdam Circular Hub (HQ)',
+      pickupFacility: 'Duisburg Platform',
+      preferredPickup: '2026-09-25',
+      logisticsType: 'platform',
+      notes: 'Looking for a recurring monthly batch if quality aligns with test spec.',
+      status: 'countered',
+      counterOffer: {
+        pricePerKg: 0.74,
+        qty_kg: 10000,
+        totalValue: 7400,
+        newWindow: '2026-09-28 to 2026-10-02',
+        message: 'We can accept €0.74/kg for high-transparency 98/2 grade with automated bale loading included.',
+        counteredAt: '2026-09-12T16:45:00Z',
+      },
+      createdAt: '2026-09-12T11:00:00Z',
+    },
+    {
+      id: 'REQ-ORD-740',
+      type: 'buy_now',
+      listingId: 'L-105',
+      listingTitle: 'Baled OCC Corrugated Cardboard (Export Grade)',
+      buyerOrg: 'BioPolymer Labs Europe',
+      buyerContact: 'Marcus Vance',
+      buyerVerified: true,
+      sellerOrg: 'BioPolymer Labs Europe',
+      requestedQty_kg: 22000,
+      offeredPricePerKg: 0.24,
+      totalValue: 5280,
+      deliveryFacility: 'Rotterdam Circular Hub (HQ)',
+      pickupFacility: 'Rotterdam Circular Hub',
+      preferredPickup: '2026-09-18',
+      logisticsType: 'platform',
+      notes: 'Immediate loading via forklift bay 4.',
+      status: 'accepted',
+      tradeId: 'TR-4091',
+      createdAt: '2026-09-11T09:10:00Z',
+    },
+  ]);
+
+  // Shortlist Helper Functions
+  const addToShortlist = (listingId, qty_kg = null) => {
+    const listing = listings.find((l) => l.id === listingId);
+    const defaultQty = qty_kg || (listing ? listing.mass_kg : 1000);
+    setShortlist((prev) => {
+      const exists = prev.find((item) => item.listingId === listingId);
+      if (exists) {
+        return prev.map((item) =>
+          item.listingId === listingId
+            ? { ...item, qty_kg: qty_kg || item.qty_kg }
+            : item
+        );
+      }
+      return [...prev, { listingId, qty_kg: defaultQty, addedAt: new Date().toISOString() }];
+    });
+    // Add lightweight notification
+    setNotifications((prev) => [
+      {
+        id: 'sn-' + Date.now(),
+        type: 'match',
+        title: 'Saved to Shortlist',
+        desc: `${listing?.title || 'Lot'} has been added to your procurement shortlist.`,
+        link: '/shortlist',
+        date: 'Just now',
+        unread: true,
+      },
+      ...prev,
+    ]);
+  };
+
+  const removeFromShortlist = (listingId) => {
+    setShortlist((prev) => prev.filter((item) => item.listingId !== listingId));
+  };
+
+  const updateShortlistQty = (listingId, qty_kg) => {
+    setShortlist((prev) =>
+      prev.map((item) =>
+        item.listingId === listingId ? { ...item, qty_kg: Number(qty_kg) } : item
+      )
+    );
+  };
+
+  const clearShortlist = () => {
+    setShortlist([]);
+  };
+
+  const isInShortlist = (listingId) => {
+    return shortlist.some((item) => item.listingId === listingId);
+  };
+
+  // Order Request Helper Functions
+  const createOrderRequest = (orderData) => {
+    const newId = `REQ-ORD-${Math.floor(100 + Math.random() * 900)}`;
+    const newRequest = {
+      id: newId,
+      status: 'pending',
+      counterOffer: null,
+      createdAt: new Date().toISOString(),
+      ...orderData,
+    };
+    setOrderRequests((prev) => [newRequest, ...prev]);
+
+    // Send in-app notification
+    setNotifications((prev) => [
+      {
+        id: 'ord-' + Date.now(),
+        type: 'match',
+        title: orderData.type === 'buy_now' ? 'Purchase Order Submitted' : 'Quote Request Sent',
+        desc: `Your ${orderData.type === 'buy_now' ? 'order' : 'quote request'} for ${orderData.listingTitle} (${orderData.requestedQty_kg.toLocaleString()} kg) is pending seller review.`,
+        link: `/orders`,
+        date: 'Just now',
+        unread: true,
+      },
+      ...prev,
+    ]);
+    return newRequest;
+  };
+
+  const acceptOrderRequest = (orderId) => {
+    const req = orderRequests.find((r) => r.id === orderId);
+    if (!req) return;
+
+    // Create corresponding escrow trade
+    const newTradeId = `TR-${Math.floor(5000 + Math.random() * 900)}`;
+    const newTrade = {
+      id: newTradeId,
+      listingId: req.listingId,
+      sourceOrderRequestId: req.id,
+      material: req.listingTitle,
+      mass_kg: req.counterOffer ? req.counterOffer.qty_kg : req.requestedQty_kg,
+      agreedPrice: req.counterOffer ? req.counterOffer.pricePerKg : req.offeredPricePerKg,
+      totalValue: req.counterOffer ? req.counterOffer.totalValue : req.totalValue,
+      currency: '€',
+      counterpartOrg: req.buyerOrg === org.name ? req.sellerOrg : req.buyerOrg,
+      status: 'claimed',
+      stepIndex: 1,
+      escrow_state: 'held',
+      pickupFacility: req.pickupFacility || 'Rotterdam Circular Hub',
+      deliveryFacility: req.deliveryFacility || 'Antwerp Depot',
+      shipmentId: `SH-${Math.floor(8000 + Math.random() * 900)}`,
+      deliveredAt: null,
+      disputeCountdownHours: null,
+      originalGrade: 'Grade A',
+      deliveryGrade: null,
+      photosOriginal: [],
+      photosDelivery: [],
+    };
+
+    setTrades((prev) => [newTrade, ...prev]);
+
+    // Mark request as accepted
+    setOrderRequests((prev) =>
+      prev.map((r) =>
+        r.id === orderId ? { ...r, status: 'accepted', tradeId: newTradeId } : r
+      )
+    );
+
+    // Send notification
+    setNotifications((prev) => [
+      {
+        id: 'acc-' + Date.now(),
+        type: 'match',
+        title: 'Order Confirmed & Escrow Initiated',
+        desc: `Order ${req.id} for ${req.listingTitle} has been accepted. Trade ${newTradeId} is now active in Escrow.`,
+        link: `/trades/${newTradeId}`,
+        date: 'Just now',
+        unread: true,
+      },
+      ...prev,
+    ]);
+
+    return newTrade;
+  };
+
+  const declineOrderRequest = (orderId, reason = 'Not available at current specifications') => {
+    setOrderRequests((prev) =>
+      prev.map((r) =>
+        r.id === orderId
+          ? { ...r, status: 'declined', declineReason: reason }
+          : r
+      )
+    );
+
+    setNotifications((prev) => [
+      {
+        id: 'dec-' + Date.now(),
+        type: 'match',
+        title: 'Order Request Declined',
+        desc: `Order ${orderId} was declined: ${reason}`,
+        link: `/orders`,
+        date: 'Just now',
+        unread: true,
+      },
+      ...prev,
+    ]);
+  };
+
+  const counterOrderRequest = (orderId, counterData) => {
+    setOrderRequests((prev) =>
+      prev.map((r) =>
+        r.id === orderId
+          ? {
+              ...r,
+              status: 'countered',
+              counterOffer: {
+                ...counterData,
+                counteredAt: new Date().toISOString(),
+              },
+            }
+          : r
+      )
+    );
+
+    setNotifications((prev) => [
+      {
+        id: 'cnt-' + Date.now(),
+        type: 'match',
+        title: 'Counter-Offer Sent',
+        desc: `Counter-offer of €${counterData.pricePerKg}/kg submitted for Order ${orderId}.`,
+        link: `/seller/inbox`,
+        date: 'Just now',
+        unread: true,
+      },
+      ...prev,
+    ]);
+  };
+
+  const acceptCounterOffer = (orderId) => {
+    return acceptOrderRequest(orderId);
+  };
+
   // Quick State Helper Functions
   const toggleCapability = (cap) => {
     setOrg((prev) => {
@@ -513,6 +1043,23 @@ export function AppProvider({ children }) {
         toggleCapability,
         togglePermission,
         setVerificationStatus,
+        isLoggedIn,
+        setIsLoggedIn,
+        // E-Commerce Shortlist & Orders
+        shortlist,
+        setShortlist,
+        addToShortlist,
+        removeFromShortlist,
+        updateShortlistQty,
+        clearShortlist,
+        isInShortlist,
+        orderRequests,
+        setOrderRequests,
+        createOrderRequest,
+        acceptOrderRequest,
+        declineOrderRequest,
+        counterOrderRequest,
+        acceptCounterOffer,
       }}
     >
       {children}

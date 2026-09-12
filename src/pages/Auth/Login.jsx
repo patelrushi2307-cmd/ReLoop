@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { RefreshCw, ArrowRight } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setIsLoggedIn } = useApp();
   const [email, setEmail] = useState('operations@biopolymerlabs.eu');
   const [password, setPassword] = useState('••••••••••••');
 
   const handleLogin = (e) => {
     e.preventDefault();
-    navigate('/dashboard');
+    setIsLoggedIn(true);
+    navigate('/logistics');
   };
 
   return (

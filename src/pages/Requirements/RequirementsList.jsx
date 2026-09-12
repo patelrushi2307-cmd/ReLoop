@@ -34,11 +34,8 @@ export default function RequirementsList() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold text-black tracking-tight">
-            Feedstock Sourcing Requirements
+            Requirements
           </h1>
-          <p className="text-xs text-gray-700 font-medium mt-0.5">
-            Active demand profiles, autonomous matching rules, and recurring standing contracts
-          </p>
         </div>
 
         <Link

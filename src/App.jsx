@@ -4,7 +4,6 @@ import { AppProvider } from './context/AppContext';
 
 // Shell & Navigation
 import Navbar from './components/Navbar';
-import RoleSwitcher from './components/RoleSwitcher';
 
 // Auth Pages
 import Signup from './pages/Auth/Signup';
@@ -22,13 +21,17 @@ import MatchesInbox from './pages/Matches/MatchesInbox';
 import MatchDetail from './pages/Matches/MatchDetail';
 import TradesList from './pages/Trades/TradesList';
 import TradeDetail from './pages/Trades/TradeDetail';
-import LogisticsHub from './pages/Logistics/LogisticsHub';
-import DriverExecution from './pages/Logistics/DriverExecution';
-import TruckLoadStudio from './pages/Logistics/TruckLoadStudio';
-import NetworkGlobe from './pages/Network/NetworkGlobe';
+import LogisticsDashboard from './pages/Logistics/LogisticsDashboard';
 import ImpactReporting from './pages/Impact/ImpactReporting';
 import AdminPanel from './pages/Admin/AdminPanel';
 import OrgSettings from './pages/Settings/OrgSettings';
+
+// B2B E-Commerce Pages
+import ShortlistPage from './pages/Shortlist/ShortlistPage';
+import CheckoutPage from './pages/Checkout/CheckoutPage';
+import OrdersPage from './pages/Orders/OrdersPage';
+import SellerInbox from './pages/Seller/SellerInbox';
+import SellerListings from './pages/Seller/SellerListings';
 
 // Layout wrapper to conditionally show Navbar
 function AppShell() {
@@ -41,20 +44,32 @@ function AppShell() {
 
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/logistics" replace />} />
           
           {/* Auth & Onboarding */}
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
 
-          {/* Dashboard */}
+          {/* Old Dashboard (Fully functional, reachable via direct URL, no redirect) */}
           <Route path="/dashboard" element={<Dashboard />} />
 
-          {/* Listings */}
+          {/* Listings & Marketplace */}
           <Route path="/listings" element={<ListingsBrowse />} />
           <Route path="/listings/new" element={<ListingNew />} />
           <Route path="/listings/:id" element={<ListingDetail />} />
+
+          {/* B2B Procurement E-Commerce Routes */}
+          <Route path="/shortlist" element={<ShortlistPage />} />
+          <Route path="/cart" element={<Navigate to="/shortlist" replace />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout/:listingId" element={<CheckoutPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:orderId" element={<OrdersPage />} />
+
+          {/* Seller Hub Routes */}
+          <Route path="/seller/inbox" element={<SellerInbox />} />
+          <Route path="/seller/listings" element={<SellerListings />} />
 
           {/* Requirements */}
           <Route path="/requirements" element={<RequirementsList />} />
@@ -64,30 +79,26 @@ function AppShell() {
           <Route path="/matches" element={<MatchesInbox />} />
           <Route path="/matches/:id" element={<MatchDetail />} />
 
-          {/* Trades */}
+          {/* Trades (also accessible via Orders) */}
           <Route path="/trades" element={<TradesList />} />
           <Route path="/trades/:id" element={<TradeDetail />} />
 
-          {/* Logistics */}
-          <Route path="/logistics" element={<LogisticsHub />} />
-          <Route path="/logistics/:shipmentId" element={<DriverExecution />} />
-          <Route path="/logistics/load/:shipmentId" element={<TruckLoadStudio />} />
+          {/* Revised Logistics Primary Dashboard Hub */}
+          <Route path="/logistics" element={<LogisticsDashboard />} />
+          <Route path="/logistics/load/:shipmentId" element={<Navigate to="/logistics" replace />} />
 
           {/* 3D Visual Surfaces & Reporting */}
-          <Route path="/network" element={<NetworkGlobe />} />
           <Route path="/impact" element={<ImpactReporting />} />
+          <Route path="/compliance" element={<Navigate to="/impact?view=compliance" replace />} />
 
           {/* Admin & Settings */}
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/settings/organisation" element={<OrgSettings />} />
 
           {/* Catch-all fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/logistics" replace />} />
         </Routes>
       </main>
-
-      {/* Floating Interactive Role & Capability Switcher */}
-      <RoleSwitcher />
     </div>
   );
 }
