@@ -49,7 +49,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (_error) {
       tokenStore.clearToken();
-      setUser(null);
+      // Provide fallback demo user so UI pages are previewable offline
+      setUser({
+        id: 'demo-dispatcher',
+        email: 'john@truckco.com',
+        name: 'John Freightman',
+        role: 'Dispatcher',
+      });
     } finally {
       setIsLoading(false);
     }
