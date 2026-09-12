@@ -3,11 +3,14 @@ import { optionalAuth, requireAuth } from '../../middleware/requireAuth.js';
 import { validate } from '../../middleware/validate.js';
 import { createListingSchema, listingQuerySchema, transitionSchema, updateListingSchema } from './listing.schema.js';
 import { listingController, listingUpload } from './listing.controller.js';
+import { gradingRoutes } from '../grading/grading.routes.js';
 
 const router = Router();
 
+router.use('/', gradingRoutes);
 router.get('/', optionalAuth, validate(listingQuerySchema), listingController.list);
 router.get('/:id', optionalAuth, listingController.getById);
+router.get('/:id/breakeven', optionalAuth, listingController.getBreakEven);
 router.post('/', requireAuth, validate(createListingSchema), listingController.create);
 router.post('/bulk', requireAuth, listingUpload.single('file'), listingController.bulk);
 router.patch('/:id', requireAuth, validate(updateListingSchema), listingController.update);

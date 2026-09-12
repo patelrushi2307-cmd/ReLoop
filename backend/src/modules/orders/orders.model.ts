@@ -7,7 +7,9 @@ export interface IOrder extends Document {
   orderNumber: string;
   buyerOrganizationId: mongoose.Types.ObjectId;
   sellerOrganizationId: mongoose.Types.ObjectId;
-  materialId: mongoose.Types.ObjectId;
+  /** Legacy inventory model; orders placed against a Listing set listingId. */
+  materialId?: mongoose.Types.ObjectId;
+  listingId?: mongoose.Types.ObjectId;
   orderType: OrderType;
   quantity: number;
   unit: string;
@@ -24,7 +26,8 @@ const OrderSchema = new Schema<IOrder>(
     orderNumber: { type: String, required: true, unique: true },
     buyerOrganizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
     sellerOrganizationId: { type: Schema.Types.ObjectId, ref: 'Organization', required: true, index: true },
-    materialId: { type: Schema.Types.ObjectId, ref: 'Material', required: true, index: true },
+    materialId: { type: Schema.Types.ObjectId, ref: 'Material', index: true },
+    listingId: { type: Schema.Types.ObjectId, ref: 'Listing', index: true },
     orderType: { type: String, enum: ['free_claim', 'paid_purchase'], required: true },
     quantity: { type: Number, required: true, min: 0.1 },
     unit: { type: String, required: true },

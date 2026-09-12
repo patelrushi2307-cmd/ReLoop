@@ -1,0 +1,266 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Palette — raw values. Near-monochrome base, accent on ~5% of surface.
+------------------------------------------------------------------- */
+:root {
+  --black: #0b0b0b;
+  --true-black: #000000;
+  --white: #ffffff;
+  --off-white: #f5f4f1;
+  --grey-100: #e6e6e3;
+  --grey-400: #9a9a97;
+  --grey-600: #5c5c59;
+  --blue: #1b4fd8;
+  --blue-deep: #0e2a6b;
+  --orange: #ff5b14;
+  --yellow: #ffc700;
+
+  /* Semantic layer — this is what flips on scroll. */
+  --bg: var(--off-white);
+  --fg: var(--black);
+  --line: var(--grey-100);
+  --muted: var(--grey-600);
+  --faint: var(--grey-400);
+  --panel: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: var(--black);
+  --fg: var(--off-white);
+  --line: rgba(245, 244, 241, 0.14);
+  --muted: var(--grey-400);
+  --faint: var(--grey-600);
+  --panel: #131313;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-line: var(--line);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-panel: var(--panel);
+  --color-blue: var(--blue);
+  --color-blue-deep: var(--blue-deep);
+  --color-orange: var(--orange);
+  --color-yellow: var(--yellow);
+  --color-off-white: var(--off-white);
+  --color-ink: var(--black);
+  --font-sans: var(--font-display), "Inter Tight", ui-sans-serif, system-ui,
+    -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ------------------------------------------------------------------
+   Base
+------------------------------------------------------------------- */
+html {
+  background-color: var(--bg);
+  color: var(--fg);
+  transition: background-color 600ms cubic-bezier(0.4, 0, 0.2, 1),
+    color 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: var(--bg);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.55;
+  font-weight: 400;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--orange);
+  color: var(--white);
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------
+   Typography scale — hierarchy from size and case, never a 2nd family.
+------------------------------------------------------------------- */
+.display {
+  font-size: clamp(2.5rem, 7vw, 7rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+.display-sm {
+  font-size: clamp(1.9rem, 4vw, 3.4rem);
+  font-weight: 500;
+  letter-spacing: -0.028em;
+  line-height: 1.02;
+}
+
+.eyebrow {
+  font-size: 12px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.body-copy {
+  font-size: 17px;
+  line-height: 1.55;
+  font-weight: 400;
+  max-width: 62ch;
+  color: var(--muted);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.rule {
+  border-color: var(--line);
+  transition: border-color 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover text-roll links */
+.roll {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+}
+.roll span {
+  display: block;
+  transition: transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.roll span:last-child {
+  position: absolute;
+  inset: 0;
+  transform: translateY(105%);
+}
+.roll:hover span:first-child {
+  transform: translateY(-105%);
+}
+.roll:hover span:last-child {
+  transform: translateY(0);
+}
+
+/* Marquee — duplicated track translated by exactly half its width. */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation-name: marquee-left;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+.marquee-track[data-dir="right"] {
+  animation-name: marquee-right;
+}
+.marquee-track[data-axis="y"] {
+  display: block;
+  width: auto;
+  height: max-content;
+  animation-name: marquee-up;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes marquee-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+.scroll-cue {
+  animation: scroll-cue 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@keyframes scroll-cue {
+  0% {
+    transform: translateX(-100%);
+  }
+  60%,
+  100% {
+    transform: translateX(250%);
+  }
+}
+
+.ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.dot-reveal {
+  opacity: 0;
+  animation: dot-in 600ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes dot-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes marquee-up {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Reduced motion — everything lands in its final state.
+------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .roll span {
+    transition: none;
+  }
+  .marquee-track {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

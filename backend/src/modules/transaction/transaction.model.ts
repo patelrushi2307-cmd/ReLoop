@@ -1,4 +1,4 @@
-import { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type TransactionStatus =
   | 'initiated'
@@ -6,10 +6,17 @@ export type TransactionStatus =
   | 'claimed'
   | 'negotiated'
   | 'agreed'
-  | 'completed';
+  | 'in_transit'
+  | 'completed'
+  | 'disputed';
 
 export interface ITransaction extends Document {
-  matchId: Types.ObjectId;
+  matchId?: Types.ObjectId;
+  listingId?: Types.ObjectId;
+  buyerOrganizationId?: Types.ObjectId;
+  sellerOrganizationId?: Types.ObjectId;
+  quantityKg?: number;
+  totalPrice?: number;
   carbonRecordId?: Types.ObjectId;
   status: TransactionStatus;
   createdAt: Date;
@@ -18,9 +25,18 @@ export interface ITransaction extends Document {
 
 const TransactionSchema = new Schema<ITransaction>(
   {
-    matchId: { type: Schema.Types.ObjectId, ref: 'Match', required: true, index: true },
+    matchId: { type: Schema.Types.ObjectId, index: true },
+    listingId: { type: Schema.Types.ObjectId, ref: 'Listing', index: true },
+    buyerOrganizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
+    sellerOrganizationId: { type: Schema.Types.ObjectId, ref: 'Organization', index: true },
+    quantityKg: { type: Number },
+    totalPrice: { type: Number, default: 0 },
     carbonRecordId: { type: Schema.Types.ObjectId, ref: 'Carbon' },
-    status: { type: String, enum: ['initiated', 'carbon_checked', 'claimed', 'negotiated', 'agreed', 'completed'], default: 'initiated' },
+    status: {
+      type: String,
+      enum: ['initiated', 'carbon_checked', 'claimed', 'negotiated', 'agreed', 'in_transit', 'completed', 'disputed'],
+      default: 'initiated',
+    },
   },
   { timestamps: true }
 );

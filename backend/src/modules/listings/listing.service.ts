@@ -11,6 +11,7 @@ import { OrganizationAuditModel } from '../organizations/audit.model.js';
 import { AppError } from '../../middleware/errorHandler.js';
 import { storageProvider } from '../../services/storage/storage.service.js';
 import { ListingCsvParser } from './listingCsv.parser.js';
+import { carbonService } from '../carbon/carbon.service.js';
 
 const transitions: Record<ListingStatus, ListingStatus[]> = {
   draft: ['published', 'cancelled'],
@@ -235,6 +236,39 @@ export class ListingService {
     const organization = await OrganizationModel.findOne({ _id: user.organizationId, isDeleted: false });
     if (!organization) throw this.error(403, 'ORGANIZATION_NOT_FOUND', 'Organisation not found');
     return { organizationId: organization._id };
+  }
+
+  async getBreakEven(listingId: string) {
+    this.assertObjectId(listingId, 'listingId');
+    const listing = await ListingModel.findOne({ _id: listingId, isDeleted: false });
+    if (!listing) throw this.error(404, 'LISTING_NOT_FOUND', 'Listing not found');
+
+    const facility = await FacilityModel.findOne({ _id: listing.facilityId, isDeleted: false });
+    const metrics = carbonService.calculateMetrics({
+      materialCategory: listing.materialCategory,
+      materialSubtype: listing.materialSubtype,
+      massKg: listing.massKg,
+      distanceKm: 0,
+    });
+
+    return {
+      listingId: listing._id,
+      title: listing.title,
+      materialCategory: listing.materialCategory,
+      materialSubtype: listing.materialSubtype,
+      massKg: listing.massKg,
+      facility: facility ? { id: facility._id, name: facility.name, location: facility.location } : null,
+      grossAvoidedKg: metrics.grossAvoidedKg,
+      reprocessKg: metrics.reprocessKg,
+      breakEvenRadiusKm: metrics.breakEvenRadiusKm,
+      emissionFactors: {
+        virgin: metrics.efVirgin,
+        reprocess: metrics.efReprocess,
+        freightPerTonneKm: metrics.efFreight,
+        loadFactor: metrics.loadFactor,
+      },
+      methodologyVersion: metrics.methodologyVersion,
+    };
   }
 
   private async assertOwner(listingId: string, organizationId: mongoose.Types.ObjectId): Promise<IListing> {

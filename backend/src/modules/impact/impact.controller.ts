@@ -6,12 +6,12 @@ export class ImpactController {
   /** Create a new ledger entry for a given entity */
   async createEntry(req: Request, res: Response, next: NextFunction) {
     try {
-      const { entityId, entityType } = req.body;
+      const { entityId, entityType, metadata } = req.body;
       if (!entityId || !entityType) {
         return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'entityId and entityType required' } });
       }
       const objId = new mongoose.Types.ObjectId(entityId);
-      const entry = await ImpactService.createEntry(objId, entityType);
+      const entry = await ImpactService.createEntry(objId, entityType, metadata);
       res.status(201).json({ success: true, data: entry });
     } catch (err) {
       next(err);
@@ -32,10 +32,10 @@ export class ImpactController {
   }
 
   /** Verify the full ledger chain */
-  async verifyChain(req: Request, res: Response, next: NextFunction) {
+  async verifyChain(_req: Request, res: Response, next: NextFunction) {
     try {
-      const isValid = await ImpactService.verifyChain();
-      res.json({ success: true, data: { valid: isValid } });
+      const result = await ImpactService.verifyChain();
+      res.json({ success: true, data: result });
     } catch (err) {
       next(err);
     }

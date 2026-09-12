@@ -5,11 +5,21 @@ export class TransactionController {
   /** Start a transaction workflow */
   async start(req: Request, res: Response, next: NextFunction) {
     try {
-      const { matchId } = req.body;
-      if (!matchId) {
-        return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'matchId is required' } });
+      const { matchId, listingId, quantityKg, distanceKm } = req.body;
+      if (!matchId && !listingId) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'INVALID_INPUT', message: 'matchId or listingId is required' },
+        });
       }
-      const transaction = await transactionService.start(matchId);
+      const transaction = await transactionService.start({
+        matchId,
+        listingId,
+        quantityKg,
+        distanceKm,
+        actorId: req.user?.userId,
+        organizationId: req.user?.organizationId,
+      });
       res.status(201).json({ success: true, data: transaction });
     } catch (err) {
       next(err);

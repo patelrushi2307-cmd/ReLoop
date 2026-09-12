@@ -24,6 +24,13 @@ export class ListingController {
     } catch (error) { next(error); }
   }
 
+  async getBreakEven(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const data = await listingService.getBreakEven(req.params.id);
+      res.json({ success: true, data });
+    } catch (error) { next(error); }
+  }
+
   async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try { res.json({ success: true, data: await listingService.update(req.user!.userId, req.params.id, req.body) }); }
     catch (error) { next(error); }
