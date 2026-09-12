@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import StatsRow from './StatsRow';
 import CargoGrid from './CargoGrid';
-import LoadPlanningPanel from './LoadPlanningPanel';
 import { Plus, Minus, Move } from 'lucide-react';
 
 export default function TruckVisualArea() {
@@ -17,7 +16,7 @@ export default function TruckVisualArea() {
         </div>
 
         {/* Central Visual Stage */}
-        <div className="relative flex-1 flex items-end justify-between w-full mt-2">
+        <div className="relative flex-1 flex items-end justify-center w-full mt-2">
           
           {/* Left: Floating Zoom Controls */}
           <div className="absolute left-1 bottom-16 flex flex-col items-center gap-4 z-30">
@@ -48,8 +47,8 @@ export default function TruckVisualArea() {
             </div>
           </div>
 
-          {/* Center-Left: Responsive Truck + Cargo Overlay Container */}
-          <div className="relative flex-1 max-w-[1220px] ml-16 mr-auto pb-4">
+          {/* Center: Responsive Truck + Cargo Overlay Container */}
+          <div className="relative flex-1 max-w-[1440px] ml-14 mr-4 pb-4">
             {/* Unified Relative Wrapper: Anchors truck and cargo grid together */}
             <div className="relative w-full select-none">
               {/* Base Layer (z-1): Complete Truck + Trailer Image */}
@@ -84,13 +83,10 @@ export default function TruckVisualArea() {
             </div>
           </div>
 
-          {/* Right: Floating Load Planning Panel */}
-          <div className="relative xl:absolute xl:top-2 xl:right-3 z-30">
-            <LoadPlanningPanel />
-          </div>
         </div>
 
       </div>
     </div>
   );
 }
+
