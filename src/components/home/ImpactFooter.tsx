@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Recycle, Leaf, Building2, ArrowRight } from 'lucide-react';
+import { Recycle, Leaf, Building2 } from 'lucide-react';
 import { PLATFORM_STATS } from '@/lib/mock-data';
 
 // Hook for animating numbers when scrolled into view
@@ -122,16 +122,6 @@ export default function ImpactFooter() {
             label="Companies Connected" 
             isVisible={isVisible}
           />
-        </div>
-
-        <div className="text-center bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-left">
-            <h3 className="text-2xl font-bold text-white mb-2">Ready to close the loop?</h3>
-            <p className="text-slate-400">Join {PLATFORM_STATS.totalCompanies}+ companies building a circular future.</p>
-          </div>
-          <button className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-bold px-8 py-4 rounded-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)] whitespace-nowrap">
-            Get Started <ArrowRight className="w-5 h-5" />
-          </button>
         </div>
 
       </div>

@@ -810,7 +810,7 @@ export const NOTIFICATIONS: Notification[] = [
 // 6. PLATFORM_STATS
 // ==========================================
 export const PLATFORM_STATS: PlatformStats = {
-  totalWasteDiverted: 12400,
+  totalWasteDiverted: 124000,
   totalCo2Saved: 3200,
   totalCompanies: 480,
   totalTransactions: 15600

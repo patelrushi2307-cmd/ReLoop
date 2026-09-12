@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { WishlistItem, Product } from '@/lib/types';
-import { PRODUCTS } from '@/lib/mock-data';
 
 interface WishlistContextType {
   items: WishlistItem[];
@@ -20,50 +19,28 @@ const WishlistContext = createContext<WishlistContextType | undefined>(undefined
 
 export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<WishlistItem[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const storedWishlist = localStorage.getItem('reloop_wishlist');
-    if (storedWishlist) {
-      try {
-        setItems(JSON.parse(storedWishlist));
-      } catch (e) {
-        console.error('Failed to parse wishlist from local storage', e);
-      }
-    }
-    setIsLoaded(true);
+    fetch('/api/wishlist')
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => {
+        if (!result) return;
+        setItems(result.data ?? []);
+        setProducts(result.products ?? []);
+      });
   }, []);
 
-  // Save to local storage whenever items change
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (items.length > 0) {
-      localStorage.setItem('reloop_wishlist', JSON.stringify(items));
-    } else {
-      localStorage.removeItem('reloop_wishlist');
-    }
-  }, [items, isLoaded]);
-
   const addToWishlist = useCallback((productId: string) => {
-    const product = PRODUCTS.find(p => p.id === productId);
-    if (!product) return;
-
-    setItems(prevItems => {
-      if (prevItems.some(item => item.productId === productId)) {
-        return prevItems; // Already in wishlist
-      }
-      
-      return [...prevItems, {
-        productId,
-        addedAt: new Date().toISOString(),
-        priceAtAdd: product.pricePerUnit,
-        currentPrice: product.pricePerUnit
-      }];
-    });
+    fetch('/api/wishlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productId }) })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => result && setItems(result.data ?? []));
   }, []);
 
   const removeFromWishlist = useCallback((productId: string) => {
-    setItems(prevItems => prevItems.filter(item => item.productId !== productId));
+    fetch(`/api/wishlist?productId=${encodeURIComponent(productId)}`, { method: 'DELETE' })
+      .then((response) => response.ok ? response.json() : null)
+      .then((result) => result && setItems(result.data ?? []));
   }, []);
 
   const addItem = useCallback((product: Product | string) => {
@@ -86,10 +63,10 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getWishlistProducts = useCallback(() => {
     return items.map(item => {
-      const product = PRODUCTS.find(p => p.id === item.productId);
+      const product = products.find(p => p.id === item.productId);
       return product ? { ...product, addedAt: item.addedAt, priceAtAdd: item.priceAtAdd } : null;
     }).filter((p): p is (Product & { addedAt: string; priceAtAdd: number }) => p !== null);
-  }, [items]);
+  }, [items, products]);
 
   return (
     <WishlistContext.Provider value={{

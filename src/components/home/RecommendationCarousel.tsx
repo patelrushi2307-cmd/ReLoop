@@ -46,7 +46,7 @@ export default function RecommendationCarousel({ products, onInspect3D }: Recomm
 
   return (
     <div 
-      className="relative w-full h-[360px] md:h-[420px] rounded-3xl overflow-hidden shadow-xl bg-slate-900 border border-slate-800 group"
+      className="relative w-full h-[360px] md:h-[420px] rounded-3xl overflow-hidden shadow-sm bg-slate-100 border border-slate-200 group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -76,8 +76,8 @@ export default function RecommendationCarousel({ products, onInspect3D }: Recomm
           )}
 
           {/* Dark Overlay Gradient for contrast */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/75 via-slate-900/25 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900/65 via-slate-900/15 to-transparent" />
         </motion.div>
       </AnimatePresence>
 
@@ -92,7 +92,7 @@ export default function RecommendationCarousel({ products, onInspect3D }: Recomm
           </span>
 
           {currentItem.isFreeReallocation && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-500 text-white shadow-md animate-pulse">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300 shadow-sm animate-pulse">
               <CheckCircle2 className="w-3.5 h-3.5" />
               FREE REALLOCATION
             </span>

@@ -38,6 +38,15 @@ export interface Product {
   topCarbonSaver: boolean;
   meshType: 'crate' | 'drum' | 'pallet' | 'ibc' | 'cardboard' | 'strapping';
   meshColor: string;
+  buyerInterest?: {
+    companyName: string;
+    city: string;
+    state: string;
+    quantity: number;
+    distanceKm: number;
+    expectedDelivery: string;
+    status: 'pending' | 'confirmed';
+  };
 }
 
 export type ProductCategory =

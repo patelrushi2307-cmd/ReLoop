@@ -3,7 +3,6 @@
 import React from 'react';
 import { Category } from '@/lib/types';
 import { ChevronRight, Grid } from 'lucide-react';
-import Image from 'next/image';
 
 interface CategoryRailProps {
   categories: Category[];

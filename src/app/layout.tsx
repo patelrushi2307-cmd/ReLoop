@@ -41,7 +41,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="font-sans antialiased bg-white text-slate-900">
+      <body className="font-sans antialiased bg-[#020817] text-slate-100">
         <AuthProvider>
           <WishlistProvider>
             <NotificationProvider>

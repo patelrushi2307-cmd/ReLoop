@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import DashboardOverview from './components/DashboardOverview';
 import WishlistPanel from './components/WishlistPanel';
 import NotificationsPanel from './components/NotificationsPanel';
 import ImpactLedger from './components/ImpactLedger';
+import OrdersPanel from './components/OrdersPanel';
 import {
   LayoutDashboard,
   Package,
@@ -15,18 +16,30 @@ import {
   Bell,
   Leaf,
   Settings,
+  List,
+  ShoppingCart,
 } from 'lucide-react';
+import ListingsPanel from './components/ListingsPanel';
+import SellerOrdersPanel from './components/SellerOrdersPanel';
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, openAuthModal } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('overview');
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const validTabs = ['overview', 'orders', 'listings', 'sell-orders', 'wishlist', 'notifications', 'impact', 'settings'];
+  const [activeTab, setActiveTab] = useState(validTabs.includes(requestedTab ?? '') ? requestedTab ?? 'overview' : 'overview');
+
+  useEffect(() => {
+    setActiveTab(validTabs.includes(requestedTab ?? '') ? requestedTab ?? 'overview' : 'overview');
+  }, [requestedTab]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push('/login');
+      router.push('/');
+      openAuthModal('Sign in to access your company dashboard.');
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isLoading, isAuthenticated, openAuthModal, router]);
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -41,7 +54,11 @@ export default function DashboardPage() {
       case 'overview':
         return <DashboardOverview />;
       case 'orders':
-        return <div className="p-8">Orders Panel (Coming Soon)</div>;
+        return <OrdersPanel />;
+      case 'listings':
+        return <ListingsPanel />;
+      case 'sell-orders':
+        return <SellerOrdersPanel />;
       case 'wishlist':
         return <WishlistPanel />;
       case 'notifications':
@@ -58,6 +75,8 @@ export default function DashboardPage() {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'orders', label: 'My Orders', icon: Package },
+    { id: 'listings', label: 'My Listings', icon: List },
+    { id: 'sell-orders', label: 'Sell Orders', icon: ShoppingCart },
     { id: 'wishlist', label: 'Wishlist', icon: Heart },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'impact', label: 'Impact Ledger', icon: Leaf },
@@ -65,34 +84,38 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-200 text-slate-900 flex flex-col">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 pt-20">
         {/* Sidebar */}
-        <aside className="w-64 bg-slate-50 border-r min-h-full p-4 flex flex-col shrink-0">
-          <div className="mb-8 px-4 mt-4">
+        <aside className="w-72 bg-slate-100 border-r border-slate-300 min-h-full p-4 flex flex-col shrink-0">
+          <div className="mb-8 px-4 mt-4 rounded-2xl border border-slate-300 bg-slate-200 p-4">
+            <p className="text-[10px] uppercase tracking-[0.24em] text-emerald-600 mb-2">Workspace</p>
             <h2 className="text-lg font-semibold text-slate-900">
               {user?.companyName || 'Your Company'}
             </h2>
-            <p className="text-sm text-slate-500">{user?.industry || 'Industry'}</p>
+            <p className="text-sm text-slate-500 mt-1">{user?.industry || 'Industry'}</p>
           </div>
           
-          <nav className="flex-1 space-y-1">
+          <nav className="flex-1 space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    router.replace(`/dashboard?tab=${item.id}`, { scroll: false });
+                  }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl transition-all border ${
                     isActive
-                      ? 'bg-emerald-50 text-emerald-600 font-medium'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50 border-transparent hover:border-slate-200'
                   }`}
                 >
-                  <Icon size={20} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
-                  <span>{item.label}</span>
+                  <Icon size={18} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
+                  <span className="font-medium">{item.label}</span>
                 </button>
               );
             })}
@@ -100,7 +123,7 @@ export default function DashboardPage() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 bg-white overflow-y-auto">
+        <main className="flex-1 bg-slate-200 overflow-y-auto">
           {renderContent()}
         </main>
       </div>

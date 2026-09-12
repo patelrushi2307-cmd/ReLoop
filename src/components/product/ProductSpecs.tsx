@@ -1,21 +1,54 @@
 'use client';
 import { useState } from 'react';
-import { CheckCircle, Bot, Leaf, Minus, Plus, Heart } from 'lucide-react';
+import { CheckCircle, Bot, Leaf, Minus, Plus, Heart, X, MapPin, Truck } from 'lucide-react';
 import { Product } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWishlist } from '@/contexts/WishlistContext';
 import { calculateFitScore } from '@/lib/ai-scoring';
-import { formatCO2 } from '@/lib/carbon-calculator';
-import { MOCK_USER } from '@/lib/mock-data';
+import { calculateDistanceKm, calculateOrderImpact, formatCO2, formatCO2Tons, getSustainableQuantity } from '@/lib/carbon-calculator';
 
 export default function ProductSpecs({ product }: { product: Product }) {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, requireAuth } = useAuth();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [quantity, setQuantity] = useState(product.moq || 1);
+  const [isOrderOpen, setIsOrderOpen] = useState(false);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderError, setOrderError] = useState('');
+  const [orderNumber, setOrderNumber] = useState('');
 
   const isWishlisted = isInWishlist(product.id);
-  const fitScore = isAuthenticated ? calculateFitScore(product, MOCK_USER) : null;
+  const distanceKm = user ? calculateDistanceKm(user.location, product.location) : (product.distanceKm ?? 0);
+  const fitScore = user ? calculateFitScore(product, user) : null;
   const estimatedFreight = product.weight ? (product.weight.value * quantity * 0.15).toFixed(2) : '0.00';
+  const orderImpact = calculateOrderImpact(product, quantity, distanceKm);
+  const sustainableQuantity = getSustainableQuantity(product, distanceKm);
+  const isClimatePositive = orderImpact.netEmissions > 0;
+
+  const openOrder = () => {
+    requireAuth('sign in to place an order.', () => {
+      setOrderError('');
+      setIsOrderOpen(true);
+    });
+  };
+
+  const submitOrder = async () => {
+    setIsOrdering(true);
+    setOrderError('');
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, quantity }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? 'Unable to place order');
+      setOrderNumber(result.data.trackingNumber);
+    } catch (error) {
+      setOrderError(error instanceof Error ? error.message : 'Unable to place order');
+    } finally {
+      setIsOrdering(false);
+    }
+  };
 
   const handleQtyChange = (delta: number) => {
     const newQty = quantity + delta;
@@ -35,6 +68,16 @@ export default function ProductSpecs({ product }: { product: Product }) {
             {product.seller?.verified && (
               <CheckCircle className="w-4 h-4 ml-1 text-blue-500" />
             )}
+          </div>
+          <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5 text-slate-400" />
+              {product.location.city}, {product.location.state}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <Truck className="h-3.5 w-3.5 text-slate-400" />
+              {distanceKm} km from your facility
+            </span>
           </div>
           <h2 className="text-2xl font-bold font-display text-slate-900">{product.title}</h2>
           <p className="mt-2 text-sm text-slate-600 line-clamp-3">{product.description}</p>
@@ -162,7 +205,7 @@ export default function ProductSpecs({ product }: { product: Product }) {
             <button className="px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               Custom Order
             </button>
-            <button className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
+            <button onClick={openOrder} className="flex-1 md:flex-none px-6 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20">
               {isAuthenticated ? 'Order Now' : 'Sign in to Order'}
             </button>
           </div>
@@ -173,6 +216,63 @@ export default function ProductSpecs({ product }: { product: Product }) {
           <span>Delivery: 3-5 business days</span>
         </div>
       </div>
+
+      {isOrderOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Order confirmation</p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">{orderNumber ? 'Order placed' : 'Review your order'}</h3>
+              </div>
+              <button onClick={() => setIsOrderOpen(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close order confirmation">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {orderNumber ? (
+              <div className="mt-6 rounded-xl bg-emerald-50 p-5 text-center">
+                <CheckCircle className="mx-auto h-10 w-10 text-emerald-600" />
+                <p className="mt-3 font-semibold text-emerald-900">Your order is confirmed.</p>
+                <p className="mt-1 text-sm text-emerald-700">Tracking number: {orderNumber}</p>
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-emerald-200 pt-4 text-xs">
+                  <div><p className="text-emerald-700">Avoided</p><p className="mt-1 font-bold text-emerald-900">{formatCO2(orderImpact.avoidedEmissions)}</p></div>
+                  <div><p className="text-emerald-700">Transport</p><p className="mt-1 font-bold text-emerald-900">{formatCO2(orderImpact.transportEmissions)}</p></div>
+                  <div><p className="text-emerald-700">Net saved</p><p className="mt-1 font-bold text-emerald-900">{formatCO2(orderImpact.netEmissions)}</p></div>
+                </div>
+                <button onClick={() => setIsOrderOpen(false)} className="mt-5 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">Done</button>
+              </div>
+            ) : (
+              <>
+                <div className="mt-6 space-y-3 rounded-xl bg-slate-50 p-4 text-sm">
+                  <div className="flex justify-between gap-4"><span className="text-slate-500">Material</span><span className="text-right font-medium text-slate-900">{product.title}</span></div>
+                  <div className="flex justify-between gap-4"><span className="text-slate-500">Seller location</span><span className="text-right font-medium text-slate-900">{product.location.city}, {product.location.state}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Transport distance</span><span className="font-medium text-slate-900">{distanceKm} km</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Quantity</span><span className="font-medium text-slate-900">{quantity} units</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Estimated total</span><span className="font-bold text-slate-900">₹{(product.pricePerUnit * quantity).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">CO₂ avoided</span><span className="font-medium text-emerald-700">{formatCO2(orderImpact.avoidedEmissions)}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Transport emissions</span><span className="font-medium text-slate-700">{formatCO2Tons(orderImpact.transportEmissions)}</span></div>
+                  <div className="flex justify-between border-t border-slate-200 pt-3"><span className="font-semibold text-slate-700">Net impact</span><span className={`font-bold ${isClimatePositive ? 'text-emerald-700' : 'text-amber-700'}`}>{isClimatePositive ? 'Save' : 'Loss of'} {formatCO2(Math.abs(orderImpact.netEmissions))}</span></div>
+                </div>
+                {!isClimatePositive && sustainableQuantity && sustainableQuantity <= product.quantity && (
+                  <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                    <p>This {distanceKm} km shipment would create more transport emissions than it avoids. Increase the quantity to spread the route footprint across more pieces.</p>
+                    <button onClick={() => setQuantity(sustainableQuantity)} className="mt-3 rounded-lg bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800">
+                      Increase to {sustainableQuantity} units
+                    </button>
+                  </div>
+                )}
+                {!isClimatePositive && (!sustainableQuantity || sustainableQuantity > product.quantity) && (
+                  <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm font-semibold text-amber-900">This listing does not have enough stock to offset transport emissions.</p>
+                )}
+                {orderError && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{orderError}</p>}
+                <button onClick={submitOrder} disabled={isOrdering || !isClimatePositive} className="mt-6 w-full rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+                  {isOrdering ? 'Placing order...' : isClimatePositive ? 'Confirm order' : 'Increase quantity to continue'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

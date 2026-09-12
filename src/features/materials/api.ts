@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { Product, ProductCategory } from '@/lib/types';
-import { PRODUCTS } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { Product } from '@/lib/types';
 
 export function useMaterials(selectedCategory?: string | null, page: number = 1, searchQuery: string = '') {
   const [data, setData] = useState<Product[]>([]);
@@ -12,44 +11,31 @@ export function useMaterials(selectedCategory?: string | null, page: number = 1,
 
   useEffect(() => {
     setIsLoading(true);
-    const timer = setTimeout(() => {
-      let filtered = [...PRODUCTS];
-
-      if (selectedCategory && selectedCategory !== 'all') {
-        filtered = filtered.filter(p => p.category === selectedCategory);
-      }
-
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase().trim();
-        filtered = filtered.filter(p => 
-          p.title.toLowerCase().includes(query) || 
-          p.description.toLowerCase().includes(query) ||
-          p.material.toLowerCase().includes(query) ||
-          p.seller.name.toLowerCase().includes(query)
-        );
-      }
-
-      const total = Math.ceil(filtered.length / limit) || 1;
-      setTotalPages(total);
-
-      const startIndex = (page - 1) * limit;
-      const paginated = filtered.slice(startIndex, startIndex + limit);
-
-      setData(paginated);
-      setIsLoading(false);
-    }, 200);
-
-    return () => clearTimeout(timer);
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (searchQuery.trim()) params.set('search', searchQuery.trim());
+    fetch(`/api/materials?${params}`)
+      .then((response) => response.json())
+      .then((result) => {
+        setData(result.data ?? []);
+        setTotalPages(result.totalPages ?? 1);
+      })
+      .finally(() => setIsLoading(false));
   }, [selectedCategory, page, searchQuery]);
 
   return { data, isLoading, totalPages, totalCount: data.length };
 }
 
 export function useRecommended() {
-  const recommendedList = useMemo(() => {
-    // Curated recommendations: high CO2 savings + featured + free reallocations
-    return PRODUCTS.filter(p => p.featured || p.topCarbonSaver || p.isFreeReallocation).slice(0, 8);
+  const [recommendedList, setRecommendedList] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/materials?recommended=true')
+      .then((response) => response.json())
+      .then((result) => setRecommendedList(result.data ?? []))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  return { data: recommendedList, isLoading: false };
+  return { data: recommendedList, isLoading };
 }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Product } from '@/lib/types';
-import { Sparkles, Leaf, RefreshCw, MapPin, Box, ArrowRight } from 'lucide-react';
+import { Leaf, RefreshCw, MapPin } from 'lucide-react';
 
 interface SpotlightRowProps {
   products: Product[];

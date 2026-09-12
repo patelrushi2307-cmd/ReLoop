@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "@/components/layout/Navbar";
-import { ORDERS } from "@/lib/mock-data";
 import { Order } from "@/lib/types";
 import { motion } from "framer-motion";
+import { useSearchParams } from "next/navigation";
 import { 
   Search, 
   Package, 
@@ -18,34 +18,43 @@ import {
 } from "lucide-react";
 
 export default function TrackingPage() {
+  const searchParams = useSearchParams();
+  const initialTrackingNumber = searchParams.get("tracking");
   const [trackingInput, setTrackingInput] = useState("");
   const [searched, setSearched] = useState(false);
   const [order, setOrder] = useState<Order | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!initialTrackingNumber) return;
+    setTrackingInput(initialTrackingNumber);
+    setSearched(true);
+    fetch(`/api/tracking/${encodeURIComponent(initialTrackingNumber)}`)
+      .then((response) => response.json())
+      .then((result) => setOrder(result.data ?? null));
+  }, [initialTrackingNumber]);
+
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!trackingInput.trim()) return;
     
     setSearched(true);
-    // Mock lookup: Any valid ID from ORDERS or standard format
-    const foundOrder = ORDERS.find(
-      o => o.id === trackingInput || o.id === trackingInput.toUpperCase() || trackingInput.includes('4092') ? ORDERS[0] : false
-    ) || (trackingInput.includes('4092') ? ORDERS[0] : null);
-    
-    setOrder(foundOrder);
+    const response = await fetch(`/api/tracking/${encodeURIComponent(trackingInput.trim())}`);
+    const result = await response.json();
+    setOrder(response.ok ? result.data : null);
   };
 
   const getStageIndex = (status: string) => {
     switch (status) {
-      case "Pending": return 0;
-      case "In_Transit": return 1;
-      case "Delivered": return 3;
+      case "processing": return 0;
+      case "in-transit": return 1;
+      case "out-for-delivery": return 2;
+      case "delivered": return 3;
       default: return 0;
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-100 flex flex-col">
       <Navbar />
 
       <main className="flex-1 py-12 px-4 sm:px-6 lg:px-8">
@@ -53,7 +62,7 @@ export default function TrackingPage() {
           
           {/* Top Section */}
           <div className="text-center mb-12">
-            <h1 className="text-3xl font-display font-bold text-slate-900 mb-4">
+            <h1 className="text-3xl font-display font-semibold text-slate-900 mb-4">
               Track Your Shipment
             </h1>
             <p className="text-slate-600 mb-8 max-w-lg mx-auto">
@@ -90,23 +99,21 @@ export default function TrackingPage() {
               className="w-full"
             >
               {order ? (
-                <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                   
                   {/* Visual Tracker */}
-                  <div className="p-8 pb-4 border-b border-slate-100 bg-slate-900 text-white relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-900/40 via-slate-900 to-slate-900 pointer-events-none"></div>
-                    
-                    <div className="relative z-10">
+                  <div className="p-8 pb-4 border-b border-slate-200 bg-white text-slate-900 relative overflow-hidden">
+                    <div>
                       <div className="flex justify-between items-center mb-8">
                         <div>
-                          <p className="text-emerald-400 text-sm font-medium mb-1">Order #{order.id}</p>
-                          <h2 className="text-2xl font-bold">{order.products[0]?.product.title}</h2>
+                          <p className="text-emerald-700 text-sm font-medium mb-1">Order #{order.id}</p>
+                          <h2 className="text-2xl font-semibold">{order.products[0]?.product.title}</h2>
                         </div>
                         <div className="text-right">
-                          <p className="text-slate-400 text-sm mb-1">Est. Delivery</p>
-                          <p className="text-xl font-bold flex items-center gap-2 justify-end">
-                            <Calendar className="w-5 h-5 text-emerald-500" />
-                            {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          <p className="text-slate-500 text-sm mb-1">Estimated delivery</p>
+                          <p className="text-xl font-semibold flex items-center gap-2 justify-end">
+                            <Calendar className="w-5 h-5 text-emerald-600" />
+                            {order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'To be confirmed'}
                           </p>
                         </div>
                       </div>
@@ -118,7 +125,7 @@ export default function TrackingPage() {
                           <path
                             d="M 100,100 C 250,20 350,180 500,100 S 650,20 700,100"
                             fill="none"
-                            stroke="#334155"
+                            stroke="#cbd5e1"
                             strokeWidth="4"
                             strokeDasharray="8 8"
                           />
@@ -151,8 +158,8 @@ export default function TrackingPage() {
                                   cx={node.cx}
                                   cy={node.cy}
                                   r={isActive ? 24 : 18}
-                                  fill={isCompleted || isActive ? "#10b981" : "#1e293b"}
-                                  stroke={isCompleted || isActive ? "#047857" : "#334155"}
+                                  fill={isCompleted || isActive ? "#059669" : "#ffffff"}
+                                  stroke={isCompleted || isActive ? "#047857" : "#cbd5e1"}
                                   strokeWidth="3"
                                   className={isActive ? "animate-pulse origin-center" : ""}
                                 />
@@ -165,7 +172,7 @@ export default function TrackingPage() {
                                   x={node.cx}
                                   y={node.cy + 40}
                                   textAnchor="middle"
-                                  fill={isActive ? "#fff" : "#94a3b8"}
+                                  fill={isActive ? "#0f172a" : "#64748b"}
                                   className={`text-sm ${isActive ? "font-bold" : "font-medium"}`}
                                 >
                                   {node.label}
@@ -192,14 +199,14 @@ export default function TrackingPage() {
                       const isFuture = currentStage < step.stage;
 
                       return (
-                        <div key={i} className={`p-6 ${isActive ? 'bg-orange-50/50 relative' : ''}`}>
-                          {isActive && <div className="absolute top-0 left-0 right-0 h-1 bg-orange-400"></div>}
+                        <div key={i} className={`p-6 ${isActive ? 'bg-emerald-50/60 relative' : ''}`}>
+                          {isActive && <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-600"></div>}
                           <div className="flex items-start gap-3">
-                            <div className={`mt-1 rounded-full p-1.5 ${isCompleted ? 'bg-emerald-100 text-emerald-600' : isActive ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-400'}`}>
+                            <div className={`mt-1 rounded-full p-1.5 ${isCompleted ? 'bg-emerald-100 text-emerald-600' : isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
                               {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : isActive ? <Clock className="w-5 h-5" /> : <step.icon className="w-5 h-5" />}
                             </div>
                             <div>
-                              <h4 className={`font-semibold ${isActive ? 'text-orange-900' : isFuture ? 'text-slate-400' : 'text-slate-800'}`}>
+                              <h4 className={`font-semibold ${isActive ? 'text-emerald-900' : isFuture ? 'text-slate-400' : 'text-slate-800'}`}>
                                 {step.title}
                               </h4>
                               <p className={`text-xs mt-1 ${isFuture ? 'text-slate-400' : 'text-slate-500'}`}>{step.time}</p>

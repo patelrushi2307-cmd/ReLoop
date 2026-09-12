@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '@/components/layout/Navbar';
 import HeroBanner from '@/components/home/HeroBanner';
 import CategoryPortal from '@/components/home/CategoryPortal';
-import ImpactFooter from '@/components/home/ImpactFooter';
 import CanvasWrapper from '@/components/three/CanvasWrapper';
 import ProductModal from '@/components/product/ProductModal';
 import AuthModal from '@/components/auth/AuthModal';
@@ -18,15 +17,19 @@ export default function Home() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, []);
+
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-white text-slate-900">
       {/* 1. Alibaba Style Top Navbar */}
       <Navbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
       {/* 2. 3D WebGL Showroom Hero Banner Section */}
       <section className="relative h-[min(680px,85vh)] min-h-[520px] overflow-hidden pt-24">
         <CanvasWrapper className="absolute inset-0 h-full" />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/30 via-slate-950/30 to-slate-950/95 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-200/10 via-slate-300/10 to-slate-400/35 pointer-events-none" />
         <HeroBanner
           onBrowseClick={() => document.getElementById('marketplace')?.scrollIntoView({ behavior: 'smooth' })}
           onSellClick={() => requireAuth('list your surplus materials.', () => router.push('/sell'))}
@@ -42,10 +45,7 @@ export default function Home() {
         />
       </div>
 
-      {/* 4. Carbon Impact Ledger Footer Section */}
-      <ImpactFooter />
-
-      {/* 5. Modals */}
+      {/* 4. Modals */}
       <AuthModal />
       <ProductModal
         isOpen={selectedProductId !== null}

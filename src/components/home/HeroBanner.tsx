@@ -85,22 +85,22 @@ export default function HeroBanner({ onBrowseClick, onSellClick }: HeroBannerPro
   return (
     <div ref={containerRef} className="absolute inset-0 z-10 flex flex-col justify-between pointer-events-none">
       {/* Top Section - Centered Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center mt-16">
+      <div className="flex-1 flex flex-col items-center justify-start px-4 text-center pt-24 mt-16">
         
-        <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/60 border border-emerald-500/30 backdrop-blur-md mb-6 pointer-events-auto">
+        <div className="hero-badge inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/85 border border-emerald-500/30 backdrop-blur-md mb-6 pointer-events-auto shadow-sm">
           <Leaf className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-medium text-emerald-300 tracking-wide uppercase">Circular Carbon Ecosystem</span>
+          <span className="text-sm font-medium text-emerald-700 tracking-wide uppercase">Circular Carbon Ecosystem</span>
         </div>
 
-        <h1 className="hero-title text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 max-w-4xl tracking-tight drop-shadow-2xl">
+        <h1 className="hero-title text-4xl md:text-5xl lg:text-6xl font-bold text-slate-950 mb-3 max-w-4xl tracking-tight drop-shadow-sm">
           The Circular <br className="md:hidden" /> Packaging Exchange
         </h1>
 
-        <p className="hero-subtitle text-xl md:text-2xl text-slate-200 mb-10 max-w-2xl drop-shadow-md font-light">
+        <p className="hero-subtitle text-lg md:text-xl text-slate-600 mb-5 max-w-2xl drop-shadow-sm font-light">
           Trade surplus materials. Cut carbon. Close the loop.
         </p>
 
-        <div className="hero-buttons flex flex-col sm:flex-row gap-4 pointer-events-auto">
+        <div className="hero-buttons flex flex-col sm:flex-row gap-3 pointer-events-auto translate-y-24">
           <button 
             onClick={onBrowseClick}
             className="flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-all hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
@@ -111,7 +111,7 @@ export default function HeroBanner({ onBrowseClick, onSellClick }: HeroBannerPro
           
           <button 
             onClick={onSellClick}
-            className="flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white font-semibold backdrop-blur-md border border-slate-700 transition-all hover:scale-105 shadow-xl"
+            className="flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-semibold backdrop-blur-md border border-slate-700 transition-all hover:scale-105 shadow-xl"
           >
             <PackagePlus className="w-5 h-5" />
             List Your Surplus
@@ -120,27 +120,27 @@ export default function HeroBanner({ onBrowseClick, onSellClick }: HeroBannerPro
       </div>
 
       {/* Bottom Bar - Stats */}
-      <div className="hero-stats w-full max-w-5xl mx-auto mb-8 px-4 pointer-events-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-700/50 rounded-3xl overflow-hidden backdrop-blur-xl border border-white/10 shadow-2xl">
-          <div className="bg-slate-900/80 p-6 text-center">
-            <div className="text-3xl font-bold text-white mb-1 flex items-center justify-center gap-1">
+      <div className="hero-stats w-full max-w-4xl mx-auto mb-3 px-4 pointer-events-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-slate-300 rounded-2xl overflow-hidden border border-slate-300 shadow-sm">
+          <div className="bg-white/95 px-4 py-2.5 text-center">
+            <div className="text-2xl font-bold text-slate-900 leading-none mb-1 flex items-center justify-center gap-1">
               <AnimatedCounter target={PLATFORM_STATS.totalWasteDiverted} />
             </div>
-            <div className="text-sm text-slate-400 font-medium uppercase tracking-wider">Tons Diverted</div>
+            <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Tons Diverted</div>
           </div>
           
-          <div className="bg-slate-900/80 p-6 text-center">
-            <div className="text-3xl font-bold text-emerald-400 mb-1 flex items-center justify-center gap-1">
+          <div className="bg-white/95 px-4 py-2.5 text-center">
+            <div className="text-2xl font-bold text-emerald-400 leading-none mb-1 flex items-center justify-center gap-1">
               <AnimatedCounter target={PLATFORM_STATS.totalCo2Saved} />
             </div>
-            <div className="text-sm text-slate-400 font-medium uppercase tracking-wider">Tons CO₂ Saved</div>
+            <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Tons CO₂ Saved</div>
           </div>
           
-          <div className="bg-slate-900/80 p-6 text-center">
-            <div className="text-3xl font-bold text-white mb-1 flex items-center justify-center gap-1">
+          <div className="bg-white/95 px-4 py-2.5 text-center">
+            <div className="text-2xl font-bold text-slate-900 leading-none mb-1 flex items-center justify-center gap-1">
               <AnimatedCounter target={PLATFORM_STATS.totalCompanies} />+
             </div>
-            <div className="text-sm text-slate-400 font-medium uppercase tracking-wider">Companies Connected</div>
+            <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Companies Connected</div>
           </div>
         </div>
       </div>

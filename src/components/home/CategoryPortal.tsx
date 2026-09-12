@@ -9,7 +9,7 @@ import BuyersClubCard from './BuyersClubCard';
 import ServicePillsBar from './ServicePillsBar';
 import SpotlightRow from './SpotlightRow';
 import ProductCard from './ProductCard';
-import { Search, Sparkles, Filter, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import { gsap } from 'gsap';
 
@@ -26,7 +26,7 @@ export default function CategoryPortal({ onProductClick, searchQuery = '', onSea
   const containerRef = useRef<HTMLDivElement>(null);
 
   // TanStack Query style hooks
-  const { data: materials, isLoading, totalPages, totalCount } = useMaterials(activeCategoryId, currentPage, searchQuery);
+  const { data: materials, isLoading, totalPages } = useMaterials(activeCategoryId, currentPage, searchQuery);
   const { data: recommended } = useRecommended();
 
   // Apply condition filter client-side for rapid switching

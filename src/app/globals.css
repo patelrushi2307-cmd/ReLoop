@@ -6,10 +6,16 @@
 
 @layer base {
   :root {
-    --color-emerald-primary: #10b981;
-    --color-emerald-dark: #059669;
-    --color-slate-bg: #0f172a;
-    --color-slate-surface: #1e293b;
+    --brand-bg: #020817;
+    --brand-bg-elevated: #0b1220;
+    --brand-panel: rgba(15, 23, 42, 0.82);
+    --brand-panel-strong: rgba(15, 23, 42, 0.96);
+    --brand-border: rgba(148, 163, 184, 0.18);
+    --brand-accent: #34d399;
+    --brand-accent-strong: #10b981;
+    --brand-accent-soft: rgba(52, 211, 153, 0.14);
+    --brand-muted: #94a3b8;
+    --brand-text: #e2e8f0;
   }
 
   html {
@@ -17,11 +23,15 @@
   }
 
   body {
-    @apply bg-white text-slate-900 font-sans antialiased;
+    @apply bg-[#020817] text-slate-100 font-sans antialiased;
+    background-image:
+      radial-gradient(circle at top, rgba(52, 211, 153, 0.18), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.08), transparent 20%),
+      linear-gradient(180deg, #020817 0%, #08111d 32%, #020817 100%);
   }
 
   ::selection {
-    @apply bg-emerald-500/30 text-emerald-900;
+    @apply bg-emerald-500/30 text-emerald-100;
   }
 }
 

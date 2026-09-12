@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { User, PendingAction, AuthState } from '@/lib/types';
-import { MOCK_USER } from '@/lib/mock-data';
 
 interface AuthContextType extends AuthState {
   showAuthModal: boolean;
@@ -27,41 +26,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authMessage, setAuthMessage] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('reloop_user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-      } catch (e) {
-        console.error('Failed to parse stored user', e);
-      }
-    }
-    setIsLoading(false);
+    fetch('/api/auth/session')
+      .then((response) => response.json())
+      .then((result) => {
+        setUser(result.user ?? null);
+        setIsAuthenticated(Boolean(result.user));
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
-    // Simulate API call
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        if (email && password) {
-          // Validated mock credentials
-        }
-        setUser(MOCK_USER);
-        setIsAuthenticated(true);
-        localStorage.setItem('reloop_user', JSON.stringify(MOCK_USER));
-        setIsLoading(false);
-        setShowAuthModal(false);
-        
-        if (pendingAction) {
-          pendingAction.callback();
-          setPendingAction(null);
-        }
-        resolve();
-      }, 500);
-    });
+    try {
+      const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? 'Unable to sign in');
+      setUser(result.user);
+      setIsAuthenticated(true);
+      setShowAuthModal(false);
+      pendingAction?.callback();
+      setPendingAction(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, [pendingAction]);
 
   const signup = useCallback(async (
@@ -73,44 +60,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     state: string
   ) => {
     setIsLoading(true);
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const newUser: User = {
-          id: `usr_${Date.now()}`,
-          name: companyName, // Map company name to user name for simplicity
-          email,
-          companyName,
-          role: 'buyer', // Default role
-          industry,
-          location: {
-            city,
-            state,
-            country: 'USA',
-            lat: 0,
-            lng: 0
-          },
-          sustainabilityScore: 0,
-          joinedDate: new Date().toISOString()
-        };
-        setUser(newUser);
-        setIsAuthenticated(true);
-        localStorage.setItem('reloop_user', JSON.stringify(newUser));
-        setIsLoading(false);
-        setShowAuthModal(false);
-        
-        if (pendingAction) {
-          pendingAction.callback();
-          setPendingAction(null);
-        }
-        resolve();
-      }, 500);
-    });
+    try {
+      const response = await fetch('/api/auth/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ companyName, industry, email, password, city, state }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? 'Unable to create account');
+      setUser(result.user);
+      setIsAuthenticated(true);
+      setShowAuthModal(false);
+      pendingAction?.callback();
+      setPendingAction(null);
+    } finally {
+      setIsLoading(false);
+    }
   }, [pendingAction]);
 
   const logout = useCallback(() => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('reloop_user');
+    fetch('/api/auth/logout', { method: 'POST' }).finally(() => {
+      setUser(null);
+      setIsAuthenticated(false);
+    });
   }, []);
 
   const openAuthModal = useCallback((message?: string) => {

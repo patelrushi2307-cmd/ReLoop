@@ -17,6 +17,9 @@ const INDUSTRIES = [
   'Electronics'
 ];
 
+const DEMO_EMAIL = 'procurement@bharatsteel.in';
+const DEMO_PASSWORD = 'demo-password';
+
 export default function AuthModal() {
   const { showAuthModal, pendingAction, login, signup, closeAuthModal } = useAuth();
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
@@ -112,6 +115,29 @@ export default function AuthModal() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {activeTab === 'signin' && (
+              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-emerald-300">Demo account</p>
+                    <p className="mt-1 text-xs text-emerald-200/80">Email: {DEMO_EMAIL}</p>
+                    <p className="text-xs text-emerald-200/80">Password: {DEMO_PASSWORD}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(DEMO_EMAIL);
+                      setPassword(DEMO_PASSWORD);
+                      setError(null);
+                    }}
+                    className="shrink-0 rounded-lg border border-emerald-400/40 px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-400/20"
+                  >
+                    Use demo account
+                  </button>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'signup' && (
               <>
                 <div className="space-y-4">

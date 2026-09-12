@@ -2,22 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { Category } from '@/lib/types';
-import { CATEGORIES } from '@/lib/mock-data';
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>(CATEGORIES);
-  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Simulated TanStack Query style async fetch with live aggregation
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setCategories(CATEGORIES);
-      setIsLoading(false);
-    }, 150);
-
-    return () => clearTimeout(timer);
+    fetch('/api/categories')
+      .then((response) => response.json())
+      .then((result) => setCategories(result.data ?? []))
+      .catch((reason) => setError(reason instanceof Error ? reason : new Error('Failed to load categories')))
+      .finally(() => setIsLoading(false));
   }, []);
 
   return { data: categories, isLoading, error };

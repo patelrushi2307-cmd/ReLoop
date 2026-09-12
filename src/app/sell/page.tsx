@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/layout/Navbar";
-import { CATEGORIES } from "@/lib/mock-data";
+import { useCategories } from "@/features/categories/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   UploadCloud,
@@ -23,6 +23,7 @@ import Link from "next/link";
 
 export default function SellPage() {
   const { user, login } = useAuth();
+  const { data: categories } = useCategories();
   const [currentStep, setCurrentStep] = useState(1);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
@@ -146,19 +147,50 @@ export default function SellPage() {
         setTruckload("450");
         setContainer("900");
         setHumidity("12");
-        setWholesalePrice("2400");
-        setRetailPrice("2800");
+        const wholesale = Math.round((1800 + Math.random() * 1400) / 50) * 50;
+        const retail = wholesale + Math.round((150 + Math.random() * 500) / 50) * 50;
+        setWholesalePrice(String(wholesale));
+        setRetailPrice(String(retail));
         setStock(quantity || "500");
       }
     }, intervalTime);
   };
 
-  const publishListing = () => {
+  const publishListing = async () => {
     setIsPublishing(true);
-    setTimeout(() => {
+    const response = await fetch("/api/listings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        description,
+        category,
+        material: materialType,
+        grade,
+        quantity: Number(stock || quantity || 0),
+        moq: Number(moq || 1),
+        pricePerUnit: Number(retailPrice || 0),
+        wholesalePrice: Number(wholesalePrice || 0),
+        currency: "INR",
+        images: previews,
+        dimensions: { length: Number(length || 0), width: Number(width || 0), height: Number(height || 0), unit: dimUnit },
+        weight: { value: Number(weight || 0), unit: "kg" },
+        co2Savings: 0,
+        co2Details: "Estimated after listing review.",
+        specs: { humidity: humidity || "Not provided", unit, location: `${city}, ${state}` },
+        defects: [],
+        unitsPerTruckload: Number(truckload || 0),
+        unitsPerContainer: Number(container || 0),
+        meshType: "crate",
+        meshColor: "#64748b",
+      }),
+    });
+    if (response.ok) {
       setIsPublishing(false);
       setIsPublished(true);
-    }, 1500);
+    } else {
+      setIsPublishing(false);
+    }
   };
 
   if (!user) {
@@ -193,7 +225,7 @@ export default function SellPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
-      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8 text-slate-900">
         <div className="max-w-4xl mx-auto">
           {/* Header & Step Indicator */}
           {!isPublished && (
@@ -258,7 +290,7 @@ export default function SellPage() {
                 </p>
                 <div className="flex justify-center gap-4">
                   <Link
-                    href="/dashboard"
+                    href="/dashboard?tab=listings"
                     className="px-6 py-3 border-2 border-slate-200 hover:border-slate-300 text-slate-700 rounded-xl font-medium transition-colors"
                   >
                     View Listing
@@ -337,10 +369,10 @@ export default function SellPage() {
                           <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                           >
                             <option value="">Select a category</option>
-                            {CATEGORIES.map((c) => (
+                            {categories.map((c) => (
                               <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                           </select>
@@ -352,7 +384,7 @@ export default function SellPage() {
                             placeholder="e.g. Pine Wood, HDPE Plastic..."
                             value={materialType}
                             onChange={(e) => setMaterialType(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                           />
                         </div>
                         <div>
@@ -363,12 +395,12 @@ export default function SellPage() {
                               placeholder="0"
                               value={quantity}
                               onChange={(e) => setQuantity(e.target.value)}
-                              className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              className="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                             <select
                               value={unit}
                               onChange={(e) => setUnit(e.target.value)}
-                              className="w-32 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-slate-50"
+                              className="w-32 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-900"
                             >
                               <option value="pieces">Pieces</option>
                               <option value="kg">Kg</option>
@@ -385,14 +417,14 @@ export default function SellPage() {
                               placeholder="City"
                               value={city}
                               onChange={(e) => setCity(e.target.value)}
-                              className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              className="flex-1 px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                             <input
                               type="text"
                               placeholder="State"
                               value={state}
                               onChange={(e) => setStateLoc(e.target.value)}
-                              className="w-32 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                              className="w-32 px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                             />
                           </div>
                         </div>
@@ -574,8 +606,8 @@ export default function SellPage() {
                             <div className="grid grid-cols-2 gap-4">
                               <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-                                <select disabled value={category} className="w-full px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed">
-                                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                <select disabled value={category} className="w-full px-4 py-2 rounded-xl border border-slate-300 bg-slate-100 text-slate-900 cursor-not-allowed">
+                                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                               </div>
                               <div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Leaf, Recycle, TreePine, Trees, Download, Share2 } from 'lucide-react';
 import { MOCK_CARBON_IMPACT } from '@/lib/mock-data';
+import { Order } from '@/lib/types';
 
 function useCountUp(target: number, duration: number = 2000): number {
   const [count, setCount] = useState(0);
@@ -21,10 +22,21 @@ function useCountUp(target: number, duration: number = 2000): number {
 }
 
 export default function ImpactLedger() {
-  const totalCo2 = useCountUp(MOCK_CARBON_IMPACT.totalCo2Saved, 2500);
-  const totalWaste = useCountUp(MOCK_CARBON_IMPACT.wasteDiverted, 2500);
-  const totalVirgin = useCountUp(MOCK_CARBON_IMPACT.virginMaterialDisplaced, 2500);
-  const treesEquivalent = useCountUp(MOCK_CARBON_IMPACT.equivalentTreesSaved, 2500);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    fetch('/api/orders')
+      .then((response) => response.json())
+      .then((result) => setOrders(result.data ?? []));
+  }, []);
+
+  // Order CO2 values are stored in kilograms. Convert only when presenting tons.
+  const totalCo2Kg = orders.reduce((sum, order) => sum + (order.co2Saved ?? 0), 0);
+  const totalWasteKg = orders.reduce((sum, order) => sum + ((order.products[0]?.product.weight.value ?? 0) * (order.products[0]?.quantity ?? 0)), 0);
+  const totalCo2 = useCountUp(totalCo2Kg, 2500);
+  const totalWaste = useCountUp(totalWasteKg, 2500);
+  const totalVirgin = useCountUp(totalWasteKg, 2500);
+  const treesEquivalent = useCountUp(Math.round(totalCo2Kg / 22), 2500);
 
   const maxMonthly = Math.max(...MOCK_CARBON_IMPACT.monthlyData.map(m => m.co2Saved));
 
@@ -44,7 +56,7 @@ export default function ImpactLedger() {
           <div className="absolute top-0 right-0 p-4 opacity-20"><Leaf size={64} /></div>
           <div className="relative z-10">
             <Leaf size={24} className="mb-4 opacity-80" />
-            <div className="text-4xl font-bold mb-1">{totalCo2.toLocaleString()} <span className="text-lg font-normal opacity-80">tons</span></div>
+            <div className="text-4xl font-bold mb-1">{(totalCo2 / 1000).toFixed(1)} <span className="text-lg font-normal opacity-80">tons</span></div>
             <div className="text-emerald-100 font-medium">Total CO₂e Avoided</div>
           </div>
         </div>
@@ -62,7 +74,7 @@ export default function ImpactLedger() {
           <div className="absolute top-0 right-0 p-4 opacity-20"><TreePine size={64} /></div>
           <div className="relative z-10">
             <TreePine size={24} className="mb-4 opacity-80" />
-            <div className="text-4xl font-bold mb-1">{totalVirgin.toLocaleString()} <span className="text-lg font-normal opacity-80">tons</span></div>
+            <div className="text-4xl font-bold mb-1">{(totalVirgin / 1000).toFixed(1)} <span className="text-lg font-normal opacity-80">tons</span></div>
             <div className="text-green-100 font-medium">Virgin Material Displaced</div>
           </div>
         </div>
@@ -117,7 +129,7 @@ export default function ImpactLedger() {
             
             <div className="py-4 border-y border-emerald-200/60 my-4">
               <p className="text-slate-700 leading-relaxed">
-                <strong className="text-emerald-900">Bharat Steel Industries</strong> has saved <strong className="text-emerald-700">{totalCo2.toLocaleString()} tons</strong> of CO₂ through circular materials exchange.
+                <strong className="text-emerald-900">Bharat Steel Industries</strong> has saved <strong className="text-emerald-700">{(totalCo2 / 1000).toFixed(1)} tons</strong> of CO₂ through circular materials exchange.
               </p>
             </div>
             
@@ -150,23 +162,23 @@ export default function ImpactLedger() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {MOCK_CARBON_IMPACT.transactions.map((t) => (
-                <tr key={t.orderId} className="text-sm">
-                  <td className="py-4 text-slate-600">{t.date}</td>
+              {orders.map((order) => (
+                <tr key={order.id} className="text-sm">
+                  <td className="py-4 text-slate-600">{new Date(order.createdAt).toLocaleDateString()}</td>
                   <td className="py-4 font-medium text-slate-900 flex items-center">
                     <Leaf size={14} className="text-emerald-500 mr-2" />
-                    {t.productTitle}
+                    {order.products[0]?.product.title}
                   </td>
-                  <td className="py-4 text-slate-600">{t.materialType}</td>
-                  <td className="py-4 text-right font-medium text-emerald-600">{t.co2Saved}</td>
-                  <td className="py-4 text-right font-medium text-blue-600">{t.wasteDiverted}</td>
+                  <td className="py-4 text-slate-600">{order.products[0]?.product.material}</td>
+                  <td className="py-4 text-right font-medium text-emerald-600">{((order.co2Saved ?? 0) / 1000).toFixed(1)}</td>
+                  <td className="py-4 text-right font-medium text-blue-600">{((order.products[0]?.product.weight.value ?? 0) * (order.products[0]?.quantity ?? 0)).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="border-t-2 border-slate-100 bg-slate-50/50">
               <tr>
                 <td colSpan={3} className="py-4 font-semibold text-slate-900 px-4">Total Impact</td>
-                <td className="py-4 text-right font-bold text-emerald-700">{totalCo2.toLocaleString()}</td>
+                <td className="py-4 text-right font-bold text-emerald-700">{(totalCo2 / 1000).toFixed(1)}</td>
                 <td className="py-4 text-right font-bold text-blue-700">{totalWaste.toLocaleString()}</td>
               </tr>
             </tfoot>
