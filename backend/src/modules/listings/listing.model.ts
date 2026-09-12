@@ -101,6 +101,10 @@ const ListingSchema = new Schema<IListing>(
   { timestamps: true }
 );
 
+// Serves the default browse path exactly: filter on isDeleted + status, then
+// the createdAt/_id cursor sort, so pagination stays an index scan.
+ListingSchema.index({ isDeleted: 1, status: 1, createdAt: -1, _id: -1 });
+ListingSchema.index({ isDeleted: 1, organizationId: 1, status: 1, createdAt: -1 });
 ListingSchema.index({ organizationId: 1, createdAt: -1 });
 ListingSchema.index({ status: 1, materialCategory: 1, createdAt: -1 });
 ListingSchema.index({ facilityId: 1, status: 1, createdAt: -1 });

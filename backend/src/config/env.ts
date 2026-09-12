@@ -13,8 +13,15 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   CLIENT_URL: z.string().default('http://localhost:5173'),
-  CORS_ORIGINS: z.string().default('http://localhost:5173'),
+  CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:5174'),
   SENTRY_DSN: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  IMPACT_PRIVATE_KEY: z.string().optional(),
+  // PostgreSQL configuration
+  POSTGRES_URL: z.string().default('postgres://localhost:5432/circular_packaging_exchange'),
+  POSTGRES_DB: z.string().optional(),
+  POSTGRES_USER: z.string().optional(),
+  POSTGRES_PASS: z.string().optional(),
 });
 
 const parseEnv = () => {

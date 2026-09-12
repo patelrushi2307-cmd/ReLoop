@@ -15,6 +15,7 @@ const setRefreshCookie = (res: Response, token: string) => {
 
 export class AuthController {
   async register(req: Request, res: Response, next: NextFunction): Promise<void> {
+    console.log('Register request body:', req.body);
     try {
       const { user, tokens } = await authService.register(req.body);
       setRefreshCookie(res, tokens.refreshToken);

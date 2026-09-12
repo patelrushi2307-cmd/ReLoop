@@ -239,7 +239,7 @@ export class GradingService {
 
       // Audit trail
       await OrganizationAuditModel.create({
-        actorId: context.user ? context.user._id : listing.organizationId, // System / org audit
+        actorId: listing.organizationId, // System / org audit
         organizationId: listing.organizationId,
         action: 'listing.ai_graded',
         target: listing._id.toString(),

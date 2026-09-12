@@ -2,14 +2,19 @@ import { Request, Response, NextFunction } from 'express';
 import { routeService } from './route.service.js';
 
 export class RouteController {
-  /** Plan a route for given shipments */
+  /** Plan an optimized route for given shipments */
   async plan(req: Request, res: Response, next: NextFunction) {
     try {
-      const { shipments } = req.body;
+      const { shipments, vehicleCapacityKg, vehiclePalletCapacity } = req.body;
       if (!Array.isArray(shipments) || shipments.length === 0) {
         return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'shipments array required' } });
       }
-      const route = await routeService.plan(shipments);
+      const route = await routeService.plan(shipments, {
+        vehicleCapacityKg,
+        vehiclePalletCapacity,
+        actorId: req.user?.userId,
+        organizationId: req.user?.organizationId,
+      });
       res.status(201).json({ success: true, data: route });
     } catch (err) {
       next(err);
@@ -23,7 +28,10 @@ export class RouteController {
       if (!routeId || typeof actualKg !== 'number') {
         return res.status(400).json({ success: false, error: { code: 'INVALID_INPUT', message: 'routeId and actualKg are required' } });
       }
-      const route = await routeService.complete(routeId, actualKg);
+      const route = await routeService.complete(routeId, actualKg, {
+        actorId: req.user?.userId,
+        organizationId: req.user?.organizationId,
+      });
       res.json({ success: true, data: route });
     } catch (err) {
       next(err);

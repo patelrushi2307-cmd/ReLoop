@@ -52,6 +52,32 @@ export class OrdersController {
     }
   }
 
+  async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (!req.user?.organizationId) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'ORGANIZATION_REQUIRED',
+            message: 'User must belong to an organization to update an order',
+            fields: {},
+          },
+        });
+        return;
+      }
+
+      const order = await ordersService.updateStatus(
+        req.params.id,
+        req.user.organizationId,
+        req.body.status
+      );
+
+      res.json({ success: true, data: order });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async list(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user?.organizationId) {

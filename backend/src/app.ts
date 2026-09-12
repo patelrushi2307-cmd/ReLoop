@@ -1,6 +1,7 @@
 import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import mongoSanitize from 'express-mongo-sanitize';
 import rateLimit from 'express-rate-limit';
@@ -59,15 +60,30 @@ export const createApp = (): Express => {
       credentials: true,
     })
   );
+  // Listing and ledger responses are repetitive JSON that gzips very well.
+  app.use(compression());
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.use(cookieParser());
   app.use(mongoSanitize());
 
+  app.get('/', (_req, res) => {
+    res.json({
+      name: 'LoopLedger API',
+      status: 'ok',
+      frontend: env.CLIENT_URL,
+      health: '/health',
+      readiness: '/ready',
+      api: '/api/v1',
+    });
+  });
+
   // Global Rate Limiting
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 200,
+    // A dashboard page load fans out into several calls, which exhausts a
+    // 200-request window quickly while developing. Production stays strict.
+    max: process.env.NODE_ENV === 'production' ? 200 : 2000,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
